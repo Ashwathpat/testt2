@@ -2,7 +2,7 @@
 retrieve.py - Ultra-fast Semantic Vector Cache Retrieval (< 15ms target)
 """
 
-from aiohttp import http_exceptions
+import httpx
 import os
 import threading
 import time
@@ -75,35 +75,53 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     First tries the Hugging Face Inference API (0MB RAM, sub-50ms).
     Falls back to the local FastEmbed ONNX model if rate-limited or offline.
     """
-    # 1. Try Hugging Face Inference API (0MB RAM, ultra-low latency)
-    try:
-        response = httpx.post(
-            f"https://api-inference.huggingface.co/pipeline/feature-extraction/{MODEL_NAME}",
-            json={"inputs": texts},
-            headers={"Content-Type": "application/json"},
-            timeout=8.0
-        )
-        if response.status_code == 200:
-            res_data = response.json()
-            if isinstance(res_data, list) and len(res_data) > 0:
-                embeddings = []
-                for item in res_data:
-                    # Mean pool if the API returns raw token sequence embeddings (3D list)
-                    if isinstance(item, list) and len(item) > 0 and isinstance(item[0], list):
-                        arr = np.array(item)
-                        mean_vec = np.mean(arr, axis=0).tolist()
-                        embeddings.append(mean_vec)
-                    else:
-                        embeddings.append(item)
-                return embeddings
-            else:
-                print(f"[HF Inference API Warning]: Invalid response format: {res_data}")
-        else:
-            print(f"[HF Inference API Warning]: Status {response.status_code}: {response.text}")
-    except Exception as e:
-        print(f"[HF Inference API Warning]: {e}. Falling back to local model.")
+    headers = {"Content-Type": "application/json"}
+    hf_token = os.getenv("HF_TOKEN")
+    if hf_token:
+        headers["Authorization"] = f"Bearer {hf_token}"
 
-    # 2. Fallback to local ONNX model
+    # 1. Try Hugging Face Inference API (0MB RAM, ultra-low latency)
+    for attempt in range(3):
+        try:
+            response = httpx.post(
+                f"https://api-inference.huggingface.co/pipeline/feature-extraction/{MODEL_NAME}",
+                json={"inputs": texts},
+                headers=headers,
+                timeout=20.0
+            )
+            if response.status_code == 200:
+                res_data = response.json()
+                if isinstance(res_data, list) and len(res_data) > 0:
+                    embeddings = []
+                    for item in res_data:
+                        # Mean pool if the API returns raw token sequence embeddings (3D list)
+                        if isinstance(item, list) and len(item) > 0 and isinstance(item[0], list):
+                            arr = np.array(item)
+                            mean_vec = np.mean(arr, axis=0).tolist()
+                            embeddings.append(mean_vec)
+                        else:
+                            embeddings.append(item)
+                    return embeddings
+                else:
+                    print(f"[HF API Warning]: Invalid response format: {res_data}")
+                    break
+            elif response.status_code == 503:
+                # Cold start: Model is loading on Hugging Face servers
+                err_data = response.json()
+                wait_time = err_data.get("estimated_time", 10.0)
+                wait_time = min(float(wait_time), 15.0)  # Cap wait time
+                print(f"[HF API] Model cold start. Waiting {wait_time}s... (Attempt {attempt+1}/3)")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"[HF API Warning]: Status {response.status_code}: {response.text}")
+                break
+        except Exception as e:
+            print(f"[HF API Warning]: Exception {e}")
+            break
+
+    # 2. Fallback to local ONNX model (Warning: Uses ~350MB RAM)
+    print(f"[Fallback] Loading local ONNX model {MODEL_NAME} into memory...")
     model = _get_embed_model()
     embeddings = list(model.embed(texts))
     return [vec.tolist() for vec in embeddings]
