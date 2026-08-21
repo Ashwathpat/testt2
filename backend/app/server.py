@@ -320,6 +320,8 @@ def ask_stream(request: AskRequest):
         
         # Save to cache if successful
         if grounded and not is_generation_refusal(accumulated_answer):
+            if len(_LLM_ANSWER_CACHE) >= 1000:
+                _LLM_ANSWER_CACHE.pop(0)
             _LLM_ANSWER_CACHE.append((q_vec, accumulated_answer, chunks, target_lang))
             
         eval_metrics = evaluate_rag(
