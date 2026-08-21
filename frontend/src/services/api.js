@@ -160,7 +160,7 @@ export async function transcribeAudio(audioBlob) {
   } catch (err) {
     // If backend connection failed completely (e.g. server not started)
     if (err.name === 'TypeError' && err.message.includes('fetch')) {
-      throw new Error('Unable to connect to backend server at http://localhost:5000. Make sure "npm run server" is running.');
+      throw new Error(`Unable to connect to backend server at ${CONFIG.RAG_BACKEND_URL}. Make sure the backend is running.`);
     }
     throw err;
   }
