@@ -2,6 +2,7 @@
 retrieve.py - Ultra-fast Semantic Vector Cache Retrieval (< 15ms target)
 """
 
+from aiohttp import http_exceptions
 import os
 import threading
 import time
