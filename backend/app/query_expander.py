@@ -27,6 +27,11 @@ def _get_groq_client():
 
 
 # Cache expanded queries to avoid repeated LLM calls for the same question
+def clear_query_expansion_cache():
+    """Clear query expansion LRU cache."""
+    expand_query.cache_clear()
+
+
 @lru_cache(maxsize=500)
 def expand_query(query: str, n_variations: int = 4) -> list[str]:
     """

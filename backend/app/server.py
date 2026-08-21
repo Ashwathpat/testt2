@@ -14,7 +14,8 @@ from app.pipeline import run_pipeline
 from app.generator import generate_answer_stream
 from app.grounding import check_grounding
 from app.rag_evaluator import evaluate_rag
-from app.retrieve import _embed_query_cached
+from app.retrieve import _embed_query_cached, clear_retrieve_caches
+from app.query_expander import clear_query_expansion_cache
 import numpy as np
 
 _LLM_ANSWER_CACHE = []  # List of (q_vector_np, answer_str, chunks_list, target_lang)
@@ -53,6 +54,19 @@ def health():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/cache/clear")
+@app.post("/cache/clear")
+def clear_all_caches():
+    """Clear all in-memory RAG, LLM answer, embedding, and query expansion caches."""
+    _LLM_ANSWER_CACHE.clear()
+    clear_retrieve_caches()
+    clear_query_expansion_cache()
+    return {
+        "status": "success",
+        "message": "All caches cleared successfully (LLM Answer Cache, Semantic Vector Cache, Query Expansion LRU, and Embedding LRU)."
+    }
 
 
 import builtins

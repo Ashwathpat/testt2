@@ -133,10 +133,17 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     return [[0.0] * 384 for _ in texts]
 
 
-@lru_cache(maxsize=100)
+def clear_retrieve_caches():
+    """Clear all retrieve-related in-memory caches."""
+    _embed_query_cached.cache_clear()
+    _SEMANTIC_CACHE.clear()
+
+
+@lru_cache(maxsize=200)
 def _embed_query_cached(query: str) -> tuple:
     embeddings = embed_texts([f"query: {query}"])
-    return tuple(embeddings[0])
+    vec = embeddings[0]
+    return tuple(vec)
 
 
 def retrieve_context(query: str, k: int = DEFAULT_K) -> list[dict]:
