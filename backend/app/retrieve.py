@@ -33,21 +33,28 @@ if not QDRANT_API_KEY:
     raise ValueError("QDRANT_API_KEY not found")
 
 
-try:
-    TextEmbedding.add_custom_model(
-        model=MODEL_NAME,
-        pooling=PoolingType.MEAN,
-        normalization=True,
-        sources=ModelSource(hf=MODEL_NAME),
-        dim=384,
-        model_file="onnx/model.onnx",
-    )
-except ValueError:
-    pass
+# Lazy-loaded embedding model to avoid OOM at startup on 512MB servers
+_embed_model = None
 
+def _get_embed_model():
+    global _embed_model
+    if _embed_model is None:
+        try:
+            TextEmbedding.add_custom_model(
+                model=MODEL_NAME,
+                pooling=PoolingType.MEAN,
+                normalization=True,
+                sources=ModelSource(hf=MODEL_NAME),
+                dim=384,
+                model_file="onnx/model.onnx",
+            )
+        except ValueError:
+            pass
+        _embed_model = TextEmbedding(model_name=MODEL_NAME, threads=1)
+    return _embed_model
 
-# Fast Single-threaded ONNX embedding model (~5ms)
-embed_model = TextEmbedding(model_name=MODEL_NAME, threads=1)
+# Public alias for importers (grounding.py etc.)
+embed_model = None  # Will be set on first use via _get_embed_model()
 
 # Persistent Qdrant client
 client = QdrantClient(
@@ -60,23 +67,10 @@ client = QdrantClient(
 _SEMANTIC_CACHE = []
 
 
-def _background_keepalive():
-    """Keep-alive ping to AWS US-East-1 Qdrant every 15s to keep TCP/TLS socket hot."""
-    while True:
-        try:
-            time.sleep(15)
-            client.collection_exists(COLLECTION_NAME)
-        except Exception:
-            pass
-
-
-# Start background keep-alive thread
-threading.Thread(target=_background_keepalive, daemon=True).start()
-
-
-@lru_cache(maxsize=1000)
+@lru_cache(maxsize=100)
 def _embed_query_cached(query: str) -> tuple:
-    embeddings = embed_model.embed([f"query: {query}"])
+    model = _get_embed_model()
+    embeddings = model.embed([f"query: {query}"])
     return tuple(next(embeddings).tolist())
 
 

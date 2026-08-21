@@ -30,10 +30,9 @@ app.add_middleware(
 def warmup():
     try:
         print("[Startup] Warming up Qdrant connection...")
-        # Skip prewarming cache to avoid memory spikes under 512MB RAM
-        print("[Startup] Building BM25 index for sparse search...")
-        build_bm25_index(max_docs=5000)
-        print("[Startup] Warmup complete ✅")
+        # BM25 and semantic cache prewarm disabled to fit 512MB RAM on Render free tier
+        # Dense vector search alone provides excellent retrieval quality
+        print("[Startup] Warmup complete")
     except Exception as e:
         print(f"[Startup Warmup Warning]: {e}")
 
