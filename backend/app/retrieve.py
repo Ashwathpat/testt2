@@ -71,17 +71,66 @@ _SEMANTIC_CACHE = []
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """
-    Generate embeddings using the local FastEmbed ONNX model exclusively.
-    This guarantees 100% uptime, bypasses all network/DNS issues on Render,
-    and runs in sub-10ms locally.
+    Generate embeddings for a list of texts.
+    Uses urllib (stdlib) to call HF Inference API — bypasses httpx DNS issues on Render.
+    Falls back to local FastEmbed ONNX model only if IS_LOCAL is set.
     """
-    try:
+    import urllib.request
+    import json as _json
+
+    headers = {"Content-Type": "application/json"}
+    hf_token = os.getenv("HF_TOKEN")
+    if hf_token:
+        headers["Authorization"] = f"Bearer {hf_token}"
+
+    url = f"https://router.huggingface.co/hf-inference/pipeline/feature-extraction/{MODEL_NAME}"
+    payload = _json.dumps({"inputs": texts}).encode("utf-8")
+
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                res_data = _json.loads(resp.read().decode("utf-8"))
+                if isinstance(res_data, list) and len(res_data) > 0:
+                    embeddings = []
+                    for item in res_data:
+                        if isinstance(item, list) and len(item) > 0 and isinstance(item[0], list):
+                            arr = np.array(item)
+                            mean_vec = np.mean(arr, axis=0).tolist()
+                            embeddings.append(mean_vec)
+                        else:
+                            embeddings.append(item)
+                    return embeddings
+                else:
+                    print(f"[HF API] Invalid response format: {res_data}")
+                    break
+        except urllib.error.HTTPError as e:
+            if e.code == 503:
+                import json as _j2
+                try:
+                    body = _j2.loads(e.read().decode("utf-8"))
+                    wait = min(float(body.get("estimated_time", 5)), 10)
+                except Exception:
+                    wait = 5
+                print(f"[HF API] Model loading, waiting {wait:.0f}s (attempt {attempt+1}/2)")
+                time.sleep(wait)
+                continue
+            else:
+                print(f"[HF API] HTTP {e.code}: {e.reason}")
+                break
+        except Exception as e:
+            print(f"[HF API] Error: {e}")
+            break
+
+    # Fallback: use local ONNX if IS_LOCAL env is set, else return dummy
+    if os.getenv("IS_LOCAL"):
+        print("[Fallback] Using local ONNX model")
         model = _get_embed_model()
         embeddings = list(model.embed(texts))
         return [vec.tolist() for vec in embeddings]
-    except Exception as e:
-        print(f"[Embed Error] Failed to generate local embeddings: {e}")
-        return [[0.0] * 384 for _ in texts]
+
+    print("[Fallback] HF API unreachable. Returning zero vectors.")
+    return [[0.0] * 384 for _ in texts]
 
 
 @lru_cache(maxsize=100)
