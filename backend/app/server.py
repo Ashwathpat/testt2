@@ -51,6 +51,24 @@ def health_check():
     return {"status": "healthy"}
 
 
+import builtins
+import collections
+
+_server_logs = collections.deque(maxlen=50)
+_original_print = builtins.print
+
+def _patched_print(*args, **kwargs):
+    msg = " ".join(str(a) for a in args)
+    _server_logs.append(msg)
+    _original_print(*args, **kwargs)
+
+builtins.print = _patched_print
+
+@app.get("/logs")
+def get_logs():
+    return {"logs": list(_server_logs)}
+
+
 @app.post("/api/transcribe")
 async def transcribe(file: UploadFile = File(...)):
     groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
