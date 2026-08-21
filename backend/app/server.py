@@ -29,11 +29,11 @@ app.add_middleware(
 @app.on_event("startup")
 def warmup():
     try:
-        print("[Startup] Warming up Qdrant connection and FastEmbed ONNX model...")
-        prewarm_semantic_cache()
+        print("[Startup] Warming up Qdrant connection...")
+        # Skip prewarming cache to avoid memory spikes under 512MB RAM
         print("[Startup] Building BM25 index for sparse search...")
         build_bm25_index(max_docs=5000)
-        print("[Startup] Warmup complete ✅ All domain vectors cached locally!")
+        print("[Startup] Warmup complete ✅")
     except Exception as e:
         print(f"[Startup Warmup Warning]: {e}")
 

@@ -46,8 +46,8 @@ except ValueError:
     pass
 
 
-# Fast Multi-threaded ONNX embedding model (~5ms)
-embed_model = TextEmbedding(model_name=MODEL_NAME, threads=4)
+# Fast Single-threaded ONNX embedding model (~5ms)
+embed_model = TextEmbedding(model_name=MODEL_NAME, threads=1)
 
 # Persistent Qdrant client
 client = QdrantClient(

@@ -1,23 +1,5 @@
 import re
-from fastembed import TextEmbedding
-from fastembed.common.model_description import PoolingType, ModelSource
-
-MODEL_NAME = "intfloat/multilingual-e5-small"
-
-# Lightweight ONNX embedding model (same model as retrieve.py, ~10ms execution time)
-try:
-    TextEmbedding.add_custom_model(
-        model=MODEL_NAME,
-        pooling=PoolingType.MEAN,
-        normalization=True,
-        sources=ModelSource(hf=MODEL_NAME),
-        dim=384,
-        model_file="onnx/model.onnx",
-    )
-except ValueError:
-    pass
-
-embedding_model = TextEmbedding(model_name=MODEL_NAME)
+from app.retrieve import embed_model as embedding_model
 
 
 def normalize_text(text: str) -> set[str]:
