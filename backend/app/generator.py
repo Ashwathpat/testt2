@@ -8,7 +8,7 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-MODEL = "openai/gpt-oss-20b"
+MODEL = "llama-3.1-8b-instant"
 
 
 def generate_answer(
@@ -26,16 +26,14 @@ def generate_answer(
                 return f"Based on retrieved context:\n{retrieved_context[:500]}"
             return "I do not have enough information to answer."
 
-    system_prompt = """
-You are an intelligent Multilingual Voice RAG assistant.
+    system_prompt = """You are an intelligent Multilingual Voice RAG assistant.
 
-Your task is to answer the user's question clearly, accurately, and completely using the RETRIEVED CONTEXT.
-
-CRITICAL INSTRUCTIONS:
-1. Complete every sentence cleanly. Never cut off mid-sentence.
-2. Answer in the EXACT SAME LANGUAGE as the USER QUESTION (translate from context if needed).
-3. State facts directly without apologies or refusals.
-4. Keep the answer extremely concise and brief (1-2 short sentences max).
+CRITICAL INSTRUCTIONS (OBEY STRICTLY):
+1. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
+2. Complete every sentence cleanly. Never cut off mid-sentence.
+3. Answer in the EXACT SAME LANGUAGE as the USER QUESTION (translate from context if needed).
+4. State facts directly without apologies or refusals.
+5. Keep the answer extremely concise and brief (1-2 short sentences max).
 """
 
     try:
@@ -52,9 +50,7 @@ CRITICAL INSTRUCTIONS:
                 }
             ],
             temperature=0.1,
-            max_tokens=125,
-            reasoning_effort="low",
-            reasoning_format="hidden"
+            max_tokens=125
         )
 
         answer = response.choices[0].message.content
@@ -85,11 +81,12 @@ def generate_answer_stream(
 
     system_prompt = f"""You are an intelligent Voice RAG assistant. Answer ONLY in {target_lang}.
 
-CRITICAL INSTRUCTIONS:
-1. Complete every sentence cleanly. Never cut off mid-sentence.
-2. You MUST respond ONLY in {target_lang}. If the context is in another language, translate the facts into {target_lang}.
-3. State facts directly without apologies or refusals.
-4. Keep the answer extremely concise and brief (1-2 short sentences max)."""
+CRITICAL INSTRUCTIONS (OBEY STRICTLY):
+1. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
+2. Complete every sentence cleanly. Never cut off mid-sentence.
+3. You MUST respond ONLY in {target_lang}. If the context is in another language, translate the facts into {target_lang}.
+4. State facts directly without apologies or refusals.
+5. Keep the answer extremely concise and brief (1-2 short sentences max)."""
 
     try:
         response = client.chat.completions.create(
@@ -106,8 +103,6 @@ CRITICAL INSTRUCTIONS:
             ],
             temperature=0.1,
             max_tokens=125,
-            reasoning_effort="low",
-            reasoning_format="hidden",
             stream=True
         )
 

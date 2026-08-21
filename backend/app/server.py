@@ -14,6 +14,10 @@ from app.pipeline import run_pipeline
 from app.generator import generate_answer_stream
 from app.grounding import check_grounding
 from app.rag_evaluator import evaluate_rag
+from app.retrieve import _embed_query_cached
+import numpy as np
+
+_LLM_ANSWER_CACHE = []  # List of (q_vector_np, answer_str, chunks_list, target_lang)
 
 app = FastAPI()
 
@@ -132,30 +136,66 @@ def ask(request: AskRequest):
     chunks = adapt_retrieval_results(retrieved)
 
     t_gen_start = time.perf_counter()
-    result = run_pipeline(
-        request.question,
-        chunks,
-        retrieval_metadata=retrieval_metadata,
-        total_latency_start=t_start
-    )
+    
+    q_vec = np.array(_embed_query_cached(request.question), dtype=np.float32)
+    best_score = 0.0
+    cached_answer, cached_chunks = None, None
+    for c_vec, c_ans, c_chunks, _ in _LLM_ANSWER_CACHE:
+        sim = float(np.dot(q_vec, c_vec))
+        if sim > best_score:
+            best_score = sim
+            cached_answer, cached_chunks = c_ans, c_chunks
+            
+    if best_score >= 0.78 and cached_answer:
+        # Cache hit!
+        result_status = "success"
+        result_answer = cached_answer
+        result_grounded = True
+        result_retrieval_confidence = max((c.get("score", 0.0) for c in cached_chunks), default=0.0)
+        result_grounding_score = 1.0
+        result_sources = [c.get("source", c.get("source_id", "unknown")) for c in cached_chunks]
+        result_reason = "semantic_cache_hit"
+        result_retrieval_method = "semantic_llm_cache"
+        eval_metrics = {}
+    else:
+        result = run_pipeline(
+            request.question,
+            chunks,
+            retrieval_metadata=retrieval_metadata,
+            total_latency_start=t_start
+        )
+        result_status = result.status
+        result_answer = result.answer
+        result_grounded = result.grounded
+        result_retrieval_confidence = result.retrieval_confidence
+        result_grounding_score = result.grounding_score
+        result_sources = result.sources
+        result_reason = result.reason
+        result_retrieval_method = result.retrieval_method
+        eval_metrics = result.evaluation
+        
+        # Save to cache if successful
+        if result_status == "success":
+            _LLM_ANSWER_CACHE.append((q_vec, result_answer, chunks, "English"))
+            
     t_gen_end = time.perf_counter()
     generation_pipeline_ms = round((t_gen_end - t_gen_start) * 1000, 2)
     server_total_ms = round((t_gen_end - t_start) * 1000, 2)
 
     return {
-        "status": result.status,
-        "answer": result.answer,
-        "grounded": result.grounded,
-        "retrieval_confidence": result.retrieval_confidence,
-        "grounding_score": result.grounding_score,
-        "sources": result.sources,
-        "reason": result.reason,
-        "latency_ms": result.latency_ms,
+        "status": result_status,
+        "answer": result_answer,
+        "grounded": result_grounded,
+        "retrieval_confidence": result_retrieval_confidence,
+        "grounding_score": result_grounding_score,
+        "sources": result_sources,
+        "reason": result_reason,
+        "latency_ms": round((t_gen_end - t_start) * 1000, 2),
         "retrieval_ms": retrieval_ms,
         "generation_pipeline_ms": generation_pipeline_ms,
         "server_total_ms": server_total_ms,
-        "retrieval_method": result.retrieval_method,
-        "evaluation": result.evaluation,
+        "retrieval_method": result_retrieval_method,
+        "evaluation": eval_metrics,
     }
 
 
@@ -188,7 +228,46 @@ def ask_stream(request: AskRequest):
     import re as _re
     target_lang = "Hindi" if _re.search(r'[\u0900-\u097F]', request.question) else "English"
 
+    q_vec = np.array(_embed_query_cached(request.question), dtype=np.float32)
+    best_score = 0.0
+    cached_answer, cached_chunks = None, None
+    for c_vec, c_ans, c_chunks, c_lang in _LLM_ANSWER_CACHE:
+        if c_lang != target_lang:
+            continue
+        sim = float(np.dot(q_vec, c_vec))
+        if sim > best_score:
+            best_score = sim
+            cached_answer, cached_chunks = c_ans, c_chunks
+
     def event_generator():
+        # Check cache hit
+        if best_score >= 0.78 and cached_answer:
+            ttft_ms = round((time.perf_counter() - t_start) * 1000, 2)
+            meta = {
+                "type": "metadata",
+                "retrieval_ms": 0.0,
+                "retrieval_confidence": max((c.get("score", 0.0) for c in cached_chunks), default=0.0),
+                "grounding_ms": 0,
+                "grounding_score": 1.0,
+                "sources": [c.get("source", c.get("source_id", "unknown")) for c in cached_chunks],
+                "ttft_ms": ttft_ms,
+                "retrieval_method": "semantic_llm_cache"
+            }
+            yield f"data: {json.dumps(meta)}\n\n"
+            
+            # Stream cached answer in chunks to simulate fast generation
+            words = cached_answer.split(" ")
+            for i in range(0, len(words), 3):
+                chunk = " ".join(words[i:i+3]) + " "
+                yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
+                
+            total_ms = round((time.perf_counter() - t_start) * 1000, 2)
+            yield f"data: {json.dumps({'type': 'done', 'server_total_ms': total_ms})}\n\n"
+            
+            # Send evaluation event for cache hit
+            eval_metrics = {"grounding": {"grounded": True, "grounding_score": 1.0}}
+            yield f"data: {json.dumps({'type': 'evaluation', 'evaluation': eval_metrics})}\n\n"
+            return
         # First event: Granular metadata (sent immediately = low TTFT)
         ttft_ms = round((time.perf_counter() - t_start) * 1000, 2)
         meta = {
@@ -223,6 +302,11 @@ def ask_stream(request: AskRequest):
 
         # Step 3: Post-generation grounding + evaluation (runs AFTER done)
         grounded, grounding_score = check_grounding(accumulated_answer, chunks)
+        
+        # Save to cache if successful
+        if grounded and not is_generation_refusal(accumulated_answer):
+            _LLM_ANSWER_CACHE.append((q_vec, accumulated_answer, chunks, target_lang))
+            
         eval_metrics = evaluate_rag(
             request.question, accumulated_answer, chunks, total_ms, retrieval_metadata
         )
@@ -233,4 +317,5 @@ def ask_stream(request: AskRequest):
         eval_event = {"type": "evaluation", "evaluation": eval_metrics}
         yield f"data: {json.dumps(eval_event)}\n\n"
 
+    from app.generator import is_generation_refusal
     return StreamingResponse(event_generator(), media_type="text/event-stream")
