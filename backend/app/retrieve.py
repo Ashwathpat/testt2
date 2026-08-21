@@ -122,6 +122,9 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
             print(f"[HF API] Error: {e}")
             break
 
+    if not hf_token:
+        print("[HF API Error] HF_TOKEN is not set in environment variables! Please set HF_TOKEN.")
+
     # Fallback: use local ONNX if IS_LOCAL env is set, else return dummy
     if os.getenv("IS_LOCAL"):
         print("[Fallback] Using local ONNX model")
@@ -129,7 +132,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         embeddings = list(model.embed(texts))
         return [vec.tolist() for vec in embeddings]
 
-    print("[Fallback] HF API unreachable. Returning zero vectors.")
+    print("[Fallback] HF API unreachable or unauthorized (Check HF_TOKEN). Returning zero vectors.")
     return [[0.0] * 384 for _ in texts]
 
 
