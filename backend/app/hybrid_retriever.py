@@ -45,7 +45,7 @@ def _get_bm25_class():
 # Re-use the existing embedding model and Qdrant client from retrieve.py
 # ---------------------------------------------------------------------------
 from app.retrieve import (
-    _get_embed_model,
+    embed_texts,
     client as qdrant_client,
     _embed_query_cached,
     _SEMANTIC_CACHE,
@@ -270,7 +270,7 @@ def rerank_results(
             f"passage: {c['text'][:512]}" for c in candidates[:20]
         ]
 
-        embeddings = list(_get_embed_model().embed(texts_to_embed))
+        embeddings = embed_texts(texts_to_embed)
         query_emb = np.array(embeddings[0], dtype=np.float32)
 
         reranked = []
