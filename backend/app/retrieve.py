@@ -120,11 +120,10 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
             print(f"[HF API Warning]: Exception {e}")
             break
 
-    # 2. Fallback to local ONNX model (Warning: Uses ~350MB RAM)
-    print(f"[Fallback] Loading local ONNX model {MODEL_NAME} into memory...")
-    model = _get_embed_model()
-    embeddings = list(model.embed(texts))
-    return [vec.tolist() for vec in embeddings]
+    # 2. Prevent local fallback (Causes OOM on Render)
+    print(f"[Fallback] Local ONNX model loading disabled on Render to prevent OOM. Returning dummy vector.")
+    # Return dummy vectors so the app doesn't crash, allowing us to check /logs
+    return [[0.0] * 384 for _ in texts]
 
 
 @lru_cache(maxsize=100)
