@@ -1,14 +1,5 @@
 import re
-from app.retrieve import _get_embed_model
-
-# Lazy alias - will be initialized on first use
-embedding_model = None
-
-def _get_embedding_model():
-    global embedding_model
-    if embedding_model is None:
-        embedding_model = _get_embed_model()
-    return embedding_model
+from app.retrieve import embed_texts
 
 
 def normalize_text(text: str) -> set[str]:
@@ -80,11 +71,8 @@ def check_grounding(
     if not valid_chunks:
         return False, 0.0
 
-    # --------------------------------
-    # 2. Pre-embed all claims and chunks at once
-    # --------------------------------
     texts_to_embed = [f"query: {c}" for c in claims] + [f"passage: {c}" for c in valid_chunks]
-    all_embs = list(_get_embedding_model().embed(texts_to_embed))
+    all_embs = embed_texts(texts_to_embed)
     
     claim_embs = all_embs[:len(claims)]
     chunk_embs = all_embs[len(claims):]

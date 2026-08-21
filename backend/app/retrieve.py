@@ -68,11 +68,50 @@ client = QdrantClient(
 _SEMANTIC_CACHE = []
 
 
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """
+    Generate embeddings for a list of texts.
+    First tries the Hugging Face Inference API (0MB RAM, sub-50ms).
+    Falls back to the local FastEmbed ONNX model if rate-limited or offline.
+    """
+    # 1. Try Hugging Face Inference API (0MB RAM, ultra-low latency)
+    try:
+        response = httpx.post(
+            f"https://api-inference.huggingface.co/pipeline/feature-extraction/{MODEL_NAME}",
+            json={"inputs": texts},
+            headers={"Content-Type": "application/json"},
+            timeout=8.0
+        )
+        if response.status_code == 200:
+            res_data = response.json()
+            if isinstance(res_data, list) and len(res_data) > 0:
+                embeddings = []
+                for item in res_data:
+                    # Mean pool if the API returns raw token sequence embeddings (3D list)
+                    if isinstance(item, list) and len(item) > 0 and isinstance(item[0], list):
+                        arr = np.array(item)
+                        mean_vec = np.mean(arr, axis=0).tolist()
+                        embeddings.append(mean_vec)
+                    else:
+                        embeddings.append(item)
+                return embeddings
+            else:
+                print(f"[HF Inference API Warning]: Invalid response format: {res_data}")
+        else:
+            print(f"[HF Inference API Warning]: Status {response.status_code}: {response.text}")
+    except Exception as e:
+        print(f"[HF Inference API Warning]: {e}. Falling back to local model.")
+
+    # 2. Fallback to local ONNX model
+    model = _get_embed_model()
+    embeddings = list(model.embed(texts))
+    return [vec.tolist() for vec in embeddings]
+
+
 @lru_cache(maxsize=100)
 def _embed_query_cached(query: str) -> tuple:
-    model = _get_embed_model()
-    embeddings = model.embed([f"query: {query}"])
-    return tuple(next(embeddings).tolist())
+    embeddings = embed_texts([f"query: {query}"])
+    return tuple(embeddings[0])
 
 
 def retrieve_context(query: str, k: int = DEFAULT_K) -> list[dict]:

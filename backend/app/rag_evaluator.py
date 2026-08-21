@@ -13,7 +13,8 @@ All metrics are computed per-query and returned alongside the answer.
 import time
 import re
 import numpy as np
-from app.grounding import _get_embedding_model, normalize_text
+from app.grounding import normalize_text
+from app.retrieve import embed_texts
 
 
 # ──────────────────────────────────────────────────────────
@@ -36,7 +37,7 @@ def context_relevance_score(
     texts = [f"query: {query}"] + [
         f"passage: {c.get('text', '')[:512]}" for c in chunks
     ]
-    embeddings = list(_get_embedding_model().embed(texts))
+    embeddings = embed_texts(texts)
     query_emb = np.array(embeddings[0], dtype=np.float32)
 
     per_chunk = []
@@ -75,7 +76,7 @@ def chunk_diversity(chunks: list[dict]) -> float:
         return 1.0
 
     texts = [f"passage: {c.get('text', '')[:512]}" for c in chunks]
-    embeddings = list(_get_embedding_model().embed(texts))
+    embeddings = embed_texts(texts)
     emb_array = np.array(embeddings, dtype=np.float32)
 
     # Compute pairwise cosine similarities
@@ -120,7 +121,7 @@ def faithfulness_score(answer: str, chunks: list[dict]) -> float:
 
     # Pre-embed context and all sentences at once
     texts_to_embed = [f"passage: {context[:1000]}"] + [f"query: {s}" for s in sentences]
-    all_embs = list(_get_embedding_model().embed(texts_to_embed))
+    all_embs = embed_texts(texts_to_embed)
     
     context_emb = np.array(all_embs[0])
     sentence_embs = all_embs[1:]
@@ -152,10 +153,10 @@ def answer_relevance_score(query: str, answer: str) -> float:
     if not answer.strip():
         return 0.0
 
-    embs = list(_get_embedding_model().embed([
+    embs = embed_texts([
         f"query: {query}",
         f"passage: {answer[:512]}",
-    ]))
+    ])
 
     sim = float(np.array(embs[0]) @ np.array(embs[1]))
     return round(max(0.0, sim), 4)
