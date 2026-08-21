@@ -72,29 +72,28 @@ _SEMANTIC_CACHE = []
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """
     Generate embeddings for a list of texts.
-    First tries the Hugging Face Inference API (0MB RAM, sub-50ms).
-    Falls back to the local FastEmbed ONNX model if rate-limited or offline.
+    Uses urllib (stdlib) to call HF Inference API — bypasses httpx DNS issues on Render.
+    Falls back to local FastEmbed ONNX model only if IS_LOCAL is set.
     """
+    import urllib.request
+    import json as _json
+
     headers = {"Content-Type": "application/json"}
     hf_token = os.getenv("HF_TOKEN")
     if hf_token:
         headers["Authorization"] = f"Bearer {hf_token}"
 
-    # 1. Try Hugging Face Inference API (0MB RAM, ultra-low latency)
-    for attempt in range(3):
+    url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{MODEL_NAME}"
+    payload = _json.dumps({"inputs": texts}).encode("utf-8")
+
+    for attempt in range(2):
         try:
-            response = httpx.post(
-                f"https://api-inference.huggingface.co/pipeline/feature-extraction/{MODEL_NAME}",
-                json={"inputs": texts},
-                headers=headers,
-                timeout=20.0
-            )
-            if response.status_code == 200:
-                res_data = response.json()
+            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                res_data = _json.loads(resp.read().decode("utf-8"))
                 if isinstance(res_data, list) and len(res_data) > 0:
                     embeddings = []
                     for item in res_data:
-                        # Mean pool if the API returns raw token sequence embeddings (3D list)
                         if isinstance(item, list) and len(item) > 0 and isinstance(item[0], list):
                             arr = np.array(item)
                             mean_vec = np.mean(arr, axis=0).tolist()
@@ -103,26 +102,34 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
                             embeddings.append(item)
                     return embeddings
                 else:
-                    print(f"[HF API Warning]: Invalid response format: {res_data}")
+                    print(f"[HF API] Invalid response format: {res_data}")
                     break
-            elif response.status_code == 503:
-                # Cold start: Model is loading on Hugging Face servers
-                err_data = response.json()
-                wait_time = err_data.get("estimated_time", 10.0)
-                wait_time = min(float(wait_time), 15.0)  # Cap wait time
-                print(f"[HF API] Model cold start. Waiting {wait_time}s... (Attempt {attempt+1}/3)")
-                time.sleep(wait_time)
+        except urllib.error.HTTPError as e:
+            if e.code == 503:
+                import json as _j2
+                try:
+                    body = _j2.loads(e.read().decode("utf-8"))
+                    wait = min(float(body.get("estimated_time", 5)), 10)
+                except Exception:
+                    wait = 5
+                print(f"[HF API] Model loading, waiting {wait:.0f}s (attempt {attempt+1}/2)")
+                time.sleep(wait)
                 continue
             else:
-                print(f"[HF API Warning]: Status {response.status_code}: {response.text}")
+                print(f"[HF API] HTTP {e.code}: {e.reason}")
                 break
         except Exception as e:
-            print(f"[HF API Warning]: Exception {e}")
+            print(f"[HF API] Error: {e}")
             break
 
-    # 2. Prevent local fallback (Causes OOM on Render)
-    print(f"[Fallback] Local ONNX model loading disabled on Render to prevent OOM. Returning dummy vector.")
-    # Return dummy vectors so the app doesn't crash, allowing us to check /logs
+    # Fallback: use local ONNX if IS_LOCAL env is set, else return dummy
+    if os.getenv("IS_LOCAL"):
+        print("[Fallback] Using local ONNX model")
+        model = _get_embed_model()
+        embeddings = list(model.embed(texts))
+        return [vec.tolist() for vec in embeddings]
+
+    print("[Fallback] HF API unreachable. Returning zero vectors.")
     return [[0.0] * 384 for _ in texts]
 
 
