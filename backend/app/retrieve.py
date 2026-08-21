@@ -35,6 +35,7 @@ if not QDRANT_API_KEY:
 
 # Lazy-loaded embedding model to avoid OOM at startup on 512MB servers
 _embed_model = None
+CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fastembed_cache")
 
 def _get_embed_model():
     global _embed_model
@@ -50,7 +51,7 @@ def _get_embed_model():
             )
         except ValueError:
             pass
-        _embed_model = TextEmbedding(model_name=MODEL_NAME, threads=1)
+        _embed_model = TextEmbedding(model_name=MODEL_NAME, cache_dir=CACHE_DIR, threads=1)
     return _embed_model
 
 # Public alias for importers (grounding.py etc.)
