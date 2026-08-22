@@ -8,7 +8,7 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-MODEL = "groq/compound-mini"
+MODEL = "llama-3.1-8b-instant"
 
 
 def generate_answer(
@@ -50,7 +50,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=125
+            max_tokens=40
         )
 
         answer = response.choices[0].message.content
@@ -102,7 +102,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=125,
+            max_tokens=40,
             stream=True
         )
 
