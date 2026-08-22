@@ -290,6 +290,7 @@ export default function App() {
           metrics={ragResult.metrics}
           isProcessing={isProcessing}
           pipelinePhase={pipelinePhase}
+          strategy={strategy}
         />
       </div>
     </div>
