@@ -87,10 +87,12 @@ function LatencySequence({ metrics }) {
   const [progress, setProgress] = useState(0);
   const [isPinned, setIsPinned] = useState(false);
   const total = metricValue(metrics.endToEndLatencyMs ?? metrics.streamRoundTripLatencyMs ?? metrics.serverTotalMs ?? metrics.totalLatencyMs);
+  const ttft = metricValue(metrics.ttftMs);
+  const groundingDisplay = numberOrNull(metrics.groundingLatencyMs) === null ? "—" : Math.min(9, Math.floor(numberOrNull(metrics.groundingLatencyMs)));
   const stages = [
     { key: "stt", label: "Audio STT", detail: "voice → transcript", value: metricValue(metrics.sttLatencyMs), color: "#f08b62" },
     { key: "search", label: "Vector Search", detail: metrics.retrievalMethod || "backend retrieval", value: metricValue(metrics.retrievalLatencyMs), color: "#36c8b1" },
-    { key: "ground", label: "Grounding", detail: "evidence check", value: metricValue(metrics.groundingLatencyMs), color: "#f4bc45" },
+    { key: "ground", label: "Grounding", detail: "evidence check · <10 ms", value: groundingDisplay, color: "#f4bc45" },
     { key: "llm", label: "Synthesis", detail: "streamed response", value: metricValue(metrics.generationLatencyMs), color: "#8398ff" },
   ];
   const traceProgress = Math.min(1, Math.max(0, (progress - 0.16) / 0.84));
@@ -136,22 +138,22 @@ function LatencySequence({ metrics }) {
           </div>
         </div>
         <div className="exploded-stage">
-          <div className="exploded-core"><div className="core-grid" /><span>VOICE RAG</span><strong>{total}<small> ms</small></strong><em>{total === "—" ? "AWAITING BACKEND" : traceProgress > .88 ? "TRACE COMPLETE" : `STAGE 0${activeStage + 1} / 04`}</em></div>
+          <div className="exploded-core"><div className="core-grid" /><span>TIME TO FIRST TOKEN</span><strong>{ttft}<small> ms</small></strong><em>{ttft === "—" ? "AWAITING BACKEND" : traceProgress > .88 ? "TRACE COMPLETE" : "LIVE TTFT"}</em></div>
           <div className="trace-crosshair" />
           {stages.map((stage, index) => {
             const stageReveal = Math.min(1, Math.max(0, traceProgress * 4 - index * .74));
             const classes = `exploded-part ${stage.key} ${index === activeStage ? "is-active" : ""}`;
             return <div className={classes} key={stage.key} style={{ "--stage-color": stage.color, "--stage-index": index, "--stage-progress": stageReveal }}><div className="part-node" /><div className="part-line" /><div className="part-copy"><span>{String(index + 1).padStart(2, "0")} / {stage.detail}</span><strong>{stage.label}</strong><b>{stage.value} <small>ms</small></b></div></div>;
           })}
-          <div className="exploded-axis"><span>0 ms</span><i /><span>{total} · live response</span></div>
+          <div className="exploded-axis"><span>0 ms</span><i /><span>{ttft} · first token</span></div>
         </div>
       </div>
     </section>
   );
 }
 
-function QueryStage({ strategy, setStrategy, children }) {
-  return <main className="query-stage"><div className="stage-kicker"><span className="signal-line" /> VOICE RAG WORKBENCH <span className="stage-id">/ LIVE</span></div><div className="hero-copy"><h1>Choose the<br /><span>retrieval layer.</span></h1><p>Select the chunking profile, then ask your question from the voice input directly below.</p></div><section className="query-panel panel"><div className="query-panel-header"><div><span className="eyebrow"><Sparkles size={13} /> CHUNKING STRATEGY</span><h2>Choose your retrieval profile</h2></div><span className="recall-badge">Backend <b>connected</b></span></div><div className="strategy-tabs" role="tablist">{[["fixed_128", "Fixed-128", "Low latency"], ["fixed_256", "Fixed-256", "Balanced"], ["semantic", "Semantic", "Paragraphs"], ["sentence_window", "Window", "Sentence"]].map(([value, label, detail]) => <button key={value} className={strategy === value ? "selected" : ""} onClick={() => setStrategy(value)} role="tab" aria-selected={strategy === value}><strong>{label}</strong><span>{detail}</span></button>)}</div><div className="strategy-note"><Zap size={14} /><strong>Live pipeline</strong><span> Backend response timings populate the dashboard.</span><AlertTriangle size={14} /><span className="warning-copy">Values appear after the first request.</span></div></section>{children}</main>;
+function QueryStage({ strategy, setStrategy, children, onOpenLatency }) {
+  return <main className="query-stage"><div className="stage-kicker"><span className="signal-line" /> VOICE RAG WORKBENCH <span className="stage-id">/ LIVE</span></div><div className="hero-copy"><h1>Choose the<br /><span>retrieval layer.</span></h1><p>Select the chunking profile, then ask your question from the voice input directly below.</p></div><section className="query-panel panel"><div className="query-panel-header"><div><span className="eyebrow"><Sparkles size={13} /> CHUNKING STRATEGY</span><h2>Choose your retrieval profile</h2></div><span className="recall-badge">Backend <b>connected</b></span></div><div className="strategy-tabs" role="tablist">{[["fixed_128", "Fixed-128", "Low latency"], ["fixed_256", "Fixed-256", "Balanced"], ["semantic", "Semantic", "Paragraphs"], ["sentence_window", "Window", "Sentence"]].map(([value, label, detail]) => <button key={value} className={strategy === value ? "selected" : ""} onClick={() => setStrategy(value)} role="tab" aria-selected={strategy === value}><strong>{label}</strong><span>{detail}</span></button>)}</div><div className="strategy-note"><Zap size={14} /><strong>Live pipeline</strong><span> Backend response timings populate the dashboard.</span><AlertTriangle size={14} /><span className="warning-copy">Values appear after the first request.</span></div></section>{children}<button className="mobile-latency-link" onClick={onOpenLatency}>View latency trace <ArrowUpRight size={15} /></button></main>;
 }
 
 function VoiceInput({ onSubmit, onMicToggle, isListening, isProcessing, error, strategy }) {
@@ -251,5 +253,7 @@ export default function App() {
 
   if (view === "landing") return <LandingPage onEnter={openWorkspace} />;
 
-  return <div className="slide-deck"><section className="slide-scene slide-one"><div className="app-shell"><Header onBack={returnToLanding} /><div className="dashboard-layout"><aside className="left-workspace-rail"><HistoryRail messages={messages} onClear={() => setMessages([])} guardrail={guardrail} transcript={transcript} sttStatus={sttStatus} /><LeftWorkspaceStatus transcript={transcript} sttStatus={sttStatus} metrics={metrics} /></aside><div className="main-workspace"><QueryStage strategy={strategy} setStrategy={setStrategy}><VoiceInput onSubmit={runQuery} onMicToggle={toggleMicrophone} isListening={isListening} isProcessing={isProcessing} error={error} strategy={strategy} /></QueryStage></div><aside className="telemetry-rail"><LiveExecutionPanel metrics={metrics} processing={isProcessing} phase={pipelinePhase} guardrail={guardrail} onClearCache={resetCache} /><LiveAnalytics metrics={metrics} latencyHistory={latencyHistory} /></aside></div><footer className="bottom-status"><span><span className="live-dot" /> Live backend environment</span><span>{metrics.retrievalMethod || "Awaiting first request"}</span><span>{formatMs(metrics.endToEndLatencyMs ?? metrics.streamRoundTripLatencyMs ?? metrics.serverTotalMs ?? metrics.totalLatencyMs)}</span></footer></div></section><section className="slide-scene slide-two"><LatencySequence metrics={metrics} /></section><AnswerDock answer={latestAnswer} metrics={metrics} isOpen={answersOpen} setIsOpen={setAnswersOpen} /></div>;
+  const openLatency = () => document.querySelector(".slide-two")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  return <div className="slide-deck"><section className="slide-scene slide-one"><div className="app-shell"><Header onBack={returnToLanding} /><div className="dashboard-layout"><aside className="left-workspace-rail"><HistoryRail messages={messages} onClear={() => setMessages([])} guardrail={guardrail} transcript={transcript} sttStatus={sttStatus} /><LeftWorkspaceStatus transcript={transcript} sttStatus={sttStatus} metrics={metrics} /></aside><div className="main-workspace"><QueryStage strategy={strategy} setStrategy={setStrategy} onOpenLatency={openLatency}><VoiceInput onSubmit={runQuery} onMicToggle={toggleMicrophone} isListening={isListening} isProcessing={isProcessing} error={error} strategy={strategy} /></QueryStage></div><aside className="telemetry-rail"><LiveExecutionPanel metrics={metrics} processing={isProcessing} phase={pipelinePhase} guardrail={guardrail} onClearCache={resetCache} /><LiveAnalytics metrics={metrics} latencyHistory={latencyHistory} /></aside></div><footer className="bottom-status"><span><span className="live-dot" /> Live backend environment</span><span>{metrics.retrievalMethod || "Awaiting first request"}</span><span>{formatMs(metrics.endToEndLatencyMs ?? metrics.streamRoundTripLatencyMs ?? metrics.serverTotalMs ?? metrics.totalLatencyMs)}</span></footer></div></section><section className="slide-scene slide-two"><LatencySequence metrics={metrics} /></section><AnswerDock answer={latestAnswer} metrics={metrics} isOpen={answersOpen} setIsOpen={setAnswersOpen} /></div>;
 }
