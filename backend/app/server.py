@@ -105,7 +105,7 @@ async def transcribe(file: UploadFile = File(...)):
             "file": (file.filename or "recording.webm", file_bytes, "audio/webm")
         }
         data = {
-            "model": "saaras:v4",
+            "model": "saaras:v3",
             "with_timestamps": "false"
         }
         headers = {

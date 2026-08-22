@@ -1,4 +1,4 @@
-import os, dotenv, httpx, asyncio, struct
+import os, dotenv, httpx, asyncio, struct, time
 dotenv.load_dotenv()
 
 async def test():
@@ -16,13 +16,15 @@ async def test():
 
     key = os.environ['SARVAM_API_KEY']
     async with httpx.AsyncClient() as client:
+        t_start = time.perf_counter()
         resp = await client.post(
             'https://api.sarvam.ai/speech-to-text',
             files={'file': ('test.wav', bytes(wav_data), 'audio/wav')},
-            data={'model': 'saaras:v4', 'with_timestamps': 'false'},
+            data={'model': 'saaras:v3', 'with_timestamps': 'false'},
             headers={'api-subscription-key': key},
             timeout=30
         )
+        print('LATENCY:', round((time.perf_counter() - t_start) * 1000, 2), 'ms')
         print('STATUS:', resp.status_code)
         print('BODY:', resp.text)
 
