@@ -153,7 +153,6 @@ export default function App() {
       const rawMimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((type) => MediaRecorder.isTypeSupported(type));
       const cleanMimeType = rawMimeType ? rawMimeType.split(";")[0] : "audio/webm";
       const nextRecorder = rawMimeType ? new MediaRecorder(stream, { mimeType: rawMimeType }) : new MediaRecorder(stream);
-      nextRecorder.stream = stream;
       nextRecorder.ondataavailable = (event) => { if (event.data.size > 0) audioChunksRef.current.push(event.data); };
       nextRecorder.onerror = () => { setError("The microphone recording could not be completed."); setIsListening(false); setSttStatus(""); stream.getTracks().forEach((track) => track.stop()); };
       nextRecorder.onstop = async () => {
