@@ -31,7 +31,8 @@ def generate_answer(
 
 CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 1. ONLY answer using facts found in the RETRIEVED CONTEXT below. Do NOT use your own knowledge.
-2. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
+2. If the user's question asks for something unsafe, unethical, illegal, or inappropriate (like weapons, violence, harm), respond EXACTLY with: "I cannot fulfill this request."
+3. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
 3. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
 4. Complete every sentence cleanly. Never cut off mid-sentence.
 5. Answer in the EXACT SAME LANGUAGE as the USER QUESTION (translate from context if needed).
@@ -85,7 +86,8 @@ def generate_answer_stream(
 
 CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 1. ONLY answer using facts found in the RETRIEVED CONTEXT below. Do NOT use your own knowledge.
-2. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
+2. If the user's question asks for something unsafe, unethical, illegal, or inappropriate (like weapons, violence, harm), respond EXACTLY with: "I cannot fulfill this request."
+3. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
 3. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
 4. Complete every sentence cleanly. Never cut off mid-sentence.
 5. You MUST respond ONLY in {target_lang}. If the context is in another language, translate the facts into {target_lang}.
@@ -142,5 +144,6 @@ def is_generation_refusal(answer: str) -> bool:
         "i cannot provide",
         "i'm sorry",
         "unable to provide",
+        "i cannot fulfill this request",
     ]
     return any(phrase in normalized for phrase in refusal_phrases)
