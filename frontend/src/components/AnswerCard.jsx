@@ -5,7 +5,8 @@ export default function AnswerCard({ answer, sources, timestamp, isProcessing, s
   const [copied, setCopied] = useState(false);
   const isRefused = status === 'refused';
 
-  if (!answer && !isProcessing) return null;
+  // Show the card if: processing, has answer, has sources, has timestamp, or has status
+  if (!answer && !isProcessing && !timestamp && !status) return null;
 
   const handleCopy = () => {
     if (!answer) return;
@@ -112,7 +113,7 @@ export default function AnswerCard({ answer, sources, timestamp, isProcessing, s
             </p>
           )}
         </div>
-      ) : (
+      ) : answer ? (
         <div className={`markdown-body ${isProcessing ? 'skeleton-pulse' : ''}`} style={{ position: 'relative' }}>
           {renderMarkdown(answer)}
           {isProcessing && (
@@ -129,6 +130,10 @@ export default function AnswerCard({ answer, sources, timestamp, isProcessing, s
               <span>Streaming token synthesis...</span>
             </div>
           )}
+        </div>
+      ) : (
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+          Waiting for response...
         </div>
       )}
 
