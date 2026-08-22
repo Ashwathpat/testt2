@@ -17,14 +17,8 @@ BATCH_SIZE = 512
 
 STRATEGIES = ["fixed_256", "fixed_128", "semantic", "sentence_window"]
 
-QDRANT_URL = os.getenv(
-    "QDRANT_URL",
-    "https://364811d7-4171-4f47-85f9-2497e2e6c805.us-east-1-1.aws.cloud.qdrant.io",
-)
-QDRANT_API_KEY = os.getenv(
-    "QDRANT_API_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwic3ViamVjdCI6ImFwaS1rZXk6YTUyYzAyZDYtZDNiNC00NzBmLWI4M2MtNGUzOWRiYzU5ZGY3In0.b_4-okDtMYnVYTthdqpCNq1KbkSNxM5KGkWlDuSWJ48",
-)
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
 # =========================================================
 # 2. Chunking Implementations

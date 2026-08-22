@@ -18,18 +18,15 @@ COLLECTION_NAME = "fixed_128"
 MODEL_NAME = "intfloat/multilingual-e5-small"
 DEFAULT_K = 2  # Top 2 chunks for minimum latency
 
-QDRANT_URL = os.getenv(
-    "QDRANT_URL",
-    "https://364811d7-4171-4f47-85f9-2497e2e6c805.us-east-1-1.aws.cloud.qdrant.io",
-)
+QDRANT_URL = os.getenv("QDRANT_URL")
+if not QDRANT_URL:
+    raise ValueError("QDRANT_URL not found in environment variables")
 
-QDRANT_API_KEY = os.getenv(
-    "QDRANT_API_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwic3ViamVjdCI6ImFwaS1rZXk6YTUyYzAyZDYtZDNiNC00NzBmLWI4M2MtNGUzOWRiYzU5ZGY3In0.b_4-okDtMYnVYTthdqpCNq1KbkSNxM5KGkWlDuSWJ48",
-)
-
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 if not QDRANT_API_KEY:
-    raise ValueError("QDRANT_API_KEY not found")
+    raise ValueError("QDRANT_API_KEY not found in environment variables")
+
+
 
 
 # ---------------------------------------------------------------------------

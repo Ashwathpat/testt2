@@ -13,14 +13,8 @@ COLLECTION_NAME ="fixed_128"  # Strategy selected for low latency
 N_QUERIES = 100
 K = 5
 
-QDRANT_URL = os.getenv(
-    "QDRANT_URL",
-    "https://364811d7-4171-4f47-85f9-2497e2e6c805.us-east-1-1.aws.cloud.qdrant.io",
-)
-QDRANT_API_KEY = os.getenv(
-    "QDRANT_API_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwic3ViamVjdCI6ImFwaS1rZXk6YTUyYzAyZDYtZDNiNC00NzBmLWI4M2MtNGUzOWRiYzU5ZGY3In0.b_4-okDtMYnVYTthdqpCNq1KbkSNxM5KGkWlDuSWJ48",
-)
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
