@@ -104,7 +104,7 @@ async def transcribe(file: UploadFile = File(...)):
             "file": (file.filename or "recording.webm", file_bytes, file.content_type or "audio/webm")
         }
         data = {
-            "model": "whisper-large-v3"
+            "model": "whisper-large-v3-turbo"
         }
         headers = {
             "Authorization": f"Bearer {groq_api_key}"

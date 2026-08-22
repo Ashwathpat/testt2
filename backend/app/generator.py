@@ -50,7 +50,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=40
+            max_tokens=25
         )
 
         answer = response.choices[0].message.content
@@ -102,7 +102,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=40,
+            max_tokens=25,
             stream=True
         )
 
