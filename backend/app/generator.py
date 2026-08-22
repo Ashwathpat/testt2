@@ -8,7 +8,7 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-MODEL = "qwen/qwen3.6-27b"
+MODEL = "openai/gpt-oss-20b"
 
 
 def generate_answer(
