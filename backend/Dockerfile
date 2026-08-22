@@ -10,8 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Pre-download the FastEmbed ONNX model during the Docker build process
-# so it doesn't download at runtime.
-RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='intfloat/multilingual-e5-small', cache_dir='/app/fastembed_cache')"
+RUN python -c "from fastembed import TextEmbedding; from fastembed.common.model_description import PoolingType, ModelSource; TextEmbedding.add_custom_model(model='intfloat/multilingual-e5-small', pooling=PoolingType.MEAN, normalization=True, sources=ModelSource(hf='intfloat/multilingual-e5-small'), dim=384, model_file='onnx/model.onnx'); TextEmbedding(model_name='intfloat/multilingual-e5-small', cache_dir='/app/fastembed_cache')"
 
 # Set environment variables for memory efficiency (even on Cloud Run)
 ENV OMP_NUM_THREADS="1"
