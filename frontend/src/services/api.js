@@ -18,6 +18,16 @@ export const CONFIG = {
   }
 };
 
+export async function clearCache() {
+  try {
+    const res = await fetch(`${CONFIG.RAG_BACKEND_URL}/cache/clear`, { method: 'POST' });
+    return await res.json();
+  } catch (err) {
+    console.warn('Clear cache request failed:', err);
+    return { status: 'error', message: err.message };
+  }
+}
+
 // Preset demo prompts for quick testing
 export const DEMO_PRESETS = [
   {

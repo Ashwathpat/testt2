@@ -86,10 +86,10 @@ export default function AnswerCard({ answer, sources, timestamp, isProcessing, s
 
       {/* Answer Body */}
       {isProcessing && !answer ? (
-        <div style={{ padding: '1rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ height: '14px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', width: '70%' }}></div>
-          <div style={{ height: '14px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', width: '90%' }}></div>
-          <div style={{ height: '14px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', width: '60%' }}></div>
+        <div style={{ padding: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="skeleton-box" style={{ height: '18px', width: '80%' }}></div>
+          <div className="skeleton-box" style={{ height: '14px', width: '95%' }}></div>
+          <div className="skeleton-box" style={{ height: '14px', width: '65%' }}></div>
         </div>
       ) : isRefused ? (
         <div style={{
@@ -113,8 +113,22 @@ export default function AnswerCard({ answer, sources, timestamp, isProcessing, s
           )}
         </div>
       ) : (
-        <div className="markdown-body">
+        <div className={`markdown-body ${isProcessing ? 'skeleton-pulse' : ''}`} style={{ position: 'relative' }}>
           {renderMarkdown(answer)}
+          {isProcessing && (
+            <div style={{
+              marginTop: '0.5rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontSize: '0.75rem',
+              color: 'var(--accent-purple)',
+              fontWeight: 600
+            }}>
+              <span className="spinner" style={{ borderColor: 'rgba(200,90,50,0.3)', borderTopColor: 'var(--accent-purple)' }}></span>
+              <span>Streaming token synthesis...</span>
+            </div>
+          )}
         </div>
       )}
 
