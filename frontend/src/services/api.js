@@ -41,14 +41,14 @@ export const DEMO_PRESETS = [
     query: 'How does Sarvam AI Speech-to-Text optimize transcription for Indian regional accents?',
   },
   {
+    id: 'guardrail-test',
+    label: '🛡️ Test Guardrails (Off-Topic)',
+    query: 'Who won the 1998 World Cup and what is the recipe for chocolate cake?',
+  },
+  {
     id: 'rag-latency',
     label: '⚡ Voice RAG Latency',
     query: 'What strategies reduce end-to-end latency below 800ms in voice RAG pipelines?',
-  },
-  {
-    id: 'vector-db',
-    label: '🔍 Hybrid Vector Search',
-    query: 'Explain dense and sparse hybrid retrieval for document grounding.',
   },
 ];
 
@@ -248,7 +248,8 @@ export async function processQueryStream(
   sttLatencyMs = 0,
   onToken = () => {},
   onProgress = () => {},
-  onMetadata = () => {}
+  onMetadata = () => {},
+  strategy = 'fixed_128'
 ) {
   onProgress('retrieving');
 
@@ -257,7 +258,7 @@ export async function processQueryStream(
     response = await fetch(`${CONFIG.RAG_BACKEND_URL}/ask/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: textQuery }),
+      body: JSON.stringify({ question: textQuery, strategy }),
     });
   } catch (err) {
     throw new Error(

@@ -9,6 +9,7 @@ import { transcribeAudio, processQueryStream } from './services/api';
 
 export default function App() {
   const [queryText, setQueryText] = useState('');
+  const [strategy, setStrategy] = useState('fixed_128');
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [pipelinePhase, setPipelinePhase] = useState(''); // 'transcribing' | 'retrieving' | 'generating'
@@ -133,7 +134,8 @@ export default function App() {
         (phase) => setPipelinePhase(phase),
         (meta) => {
           setRagResult((prev) => ({ ...prev, sources: meta.sources }));
-        }
+        },
+        strategy
       );
 
       const finalRag = {
@@ -186,7 +188,8 @@ export default function App() {
         (phase) => setPipelinePhase(phase),
         (meta) => {
           setRagResult((prev) => ({ ...prev, sources: meta.sources }));
-        }
+        },
+        strategy
       );
 
       const finalRag = {
@@ -259,6 +262,8 @@ export default function App() {
             isProcessing={isProcessing}
             pipelinePhase={pipelinePhase}
             error={error}
+            strategy={strategy}
+            setStrategy={setStrategy}
           />
 
           {/* STT Transcript Display */}

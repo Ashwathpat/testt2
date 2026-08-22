@@ -12,9 +12,18 @@ export default function InputPanel({
   isProcessing,
   pipelinePhase,
   error,
+  strategy = 'fixed_128',
+  setStrategy = () => {},
 }) {
   const [recordTimer, setRecordTimer] = useState(0);
   const timerRef = useRef(null);
+
+  const STRATEGY_OPTIONS = [
+    { id: 'fixed_128', label: 'Fixed-128 (Low Latency)' },
+    { id: 'fixed_256', label: 'Fixed-256 (Balanced)' },
+    { id: 'semantic', label: 'Semantic Paragraphs' },
+    { id: 'sentence_window', label: 'Sentence Window' },
+  ];
 
   // Manage live recording timer
   useEffect(() => {
@@ -47,22 +56,54 @@ export default function InputPanel({
 
   return (
     <div className="glass-card input-card">
-      {/* Preset Quick Chips */}
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-          TRY PRESET DEMO QUERIES:
+      {/* Chunking Strategy & Presets Controls */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {/* Strategy Selector (Task 2 Requirement #2) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-purple)', textTransform: 'uppercase' }}>
+            ⚙️ Vector Chunking Strategy:
+          </span>
+          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+            {STRATEGY_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setStrategy(opt.id)}
+                disabled={isProcessing || isRecording}
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '6px',
+                  border: strategy === opt.id ? '1px solid var(--accent-purple)' : '1px solid var(--border-subtle)',
+                  background: strategy === opt.id ? 'rgba(200, 90, 50, 0.12)' : 'transparent',
+                  color: strategy === opt.id ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                  fontWeight: strategy === opt.id ? 700 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="presets-container">
-          {DEMO_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              className="preset-chip"
-              onClick={() => setQueryText(preset.query)}
-              disabled={isProcessing || isRecording}
-            >
-              {preset.label}
-            </button>
-          ))}
+
+        {/* Preset Quick Chips */}
+        <div>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+            TRY PRESET DEMO QUERIES:
+          </div>
+          <div className="presets-container">
+            {DEMO_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                className="preset-chip"
+                onClick={() => setQueryText(preset.query)}
+                disabled={isProcessing || isRecording}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

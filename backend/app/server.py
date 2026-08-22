@@ -44,6 +44,7 @@ def warmup():
 
 class AskRequest(BaseModel):
     question: str
+    strategy: str = "fixed_128"
 
 
 @app.get("/")
@@ -223,6 +224,7 @@ def ask_stream(request: AskRequest):
         request.question, k=3,
         enable_multi_query=False,  # Disable multi-query LLM call for speed
         enable_reranking=False,    # Skip reranking for low latency
+        collection_name=request.strategy,
     )
     t_ret_end = time.perf_counter()
     retrieval_ms = round((t_ret_end - t_ret_start) * 1000, 2)

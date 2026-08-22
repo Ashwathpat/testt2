@@ -165,19 +165,20 @@ def _bm25_search(query: str, k: int = 10) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _dense_search(query: str, k: int = 5) -> list[dict]:
+def _dense_search(query: str, k: int = 5, collection_name: str = None) -> list[dict]:
     """
     Dense vector search via Qdrant (same as existing retrieve_context but
     returns rank metadata for RRF).
     """
     from qdrant_client.http import models
 
+    target_collection = collection_name or COLLECTION_NAME
     q_clean = query.strip().lower()
     q_vec_tuple = _embed_query_cached(q_clean)
 
     try:
         response = qdrant_client.query_points(
-            collection_name=COLLECTION_NAME,
+            collection_name=target_collection,
             query=list(q_vec_tuple),
             limit=k,
             search_params=models.SearchParams(hnsw_ef=32),
@@ -307,6 +308,7 @@ def hybrid_retrieve_context(
     enable_multi_query: bool = True,
     enable_bm25: bool = True,
     enable_reranking: bool = True,
+    collection_name: str = "fixed_128",
 ) -> tuple[list[dict], dict]:
     """
     Full hybrid retrieval pipeline:
@@ -379,7 +381,7 @@ def hybrid_retrieve_context(
 
     with ThreadPoolExecutor(max_workers=min(len(query_variations), 5)) as executor:
         future_to_query = {
-            executor.submit(_dense_search, q, k=k + 3): q
+            executor.submit(_dense_search, q, k + 3, collection_name): q
             for q in query_variations
         }
         for future in as_completed(future_to_query):
