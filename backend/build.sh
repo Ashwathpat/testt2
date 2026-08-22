@@ -12,7 +12,7 @@ from fastembed import TextEmbedding
 from fastembed.common.model_description import PoolingType, ModelSource
 import os
 
-CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath('.')), 'fastembed_cache')
+CACHE_DIR = os.path.join(os.path.abspath('.'), 'fastembed_cache')
 MODEL_NAME = 'intfloat/multilingual-e5-small'
 
 try:
