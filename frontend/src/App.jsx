@@ -107,7 +107,7 @@ function LatencySequence({ metrics }) {
       const travel = Math.max(1, scene.offsetHeight - window.innerHeight);
       const raw = (window.scrollY - start) / travel;
       setProgress(Math.min(1, Math.max(0, raw)));
-      setIsPinned(raw >= -0.12);
+      setIsPinned(raw >= 0 && raw <= 1);
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
