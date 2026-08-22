@@ -1,0 +1,16 @@
+/* Live backend telemetry: execution steps replace the static latency scope in the workbench rail. */
+.telemetry-panel { min-height: 0; }
+.live-execution-list { list-style: none; padding: 0; margin: 16px 0 14px; display: grid; gap: 6px; }
+.live-execution-list li { min-height: 42px; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 10px; color: var(--muted); font-size: 10px; transition: background 180ms ease, color 180ms ease; }
+.live-execution-list li.active { color: var(--ink); background: #fff7f1; }
+.live-execution-list li.completed { color: var(--ink-soft); }
+.live-step-icon { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; }
+.live-step-icon.terracotta { background: var(--terracotta-soft); color: var(--terracotta); }
+.live-step-icon.blue { background: #e0edf6; color: var(--blue); }
+.live-step-icon.amber { background: #f7ecd3; color: var(--amber); }
+.live-step-icon.teal { background: #dcefe9; color: var(--teal); }
+.live-execution-list b { color: var(--terracotta); font-family: "Space Grotesk", sans-serif; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.live-execution-list li.active b { color: var(--teal); font-size: 9px; letter-spacing: .1em; font-family: var(--font-mono); font-weight: 800; }
+.live-trace-footer { display: grid; grid-template-columns: auto 1fr auto 40px; align-items: center; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 7px; font-weight: 800; letter-spacing: .09em; }
+.live-trace-footer b { overflow: hidden; text-overflow: ellipsis; color: var(--ink-soft); font-size: 9px; letter-spacing: 0; }
+@media (max-width: 760px) { .live-execution-list li { font-size: 11px; } }
