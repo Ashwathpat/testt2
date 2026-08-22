@@ -32,6 +32,14 @@
   .exploded-stage {
     transform: translate(-20px, -24px) scale(0.86);
   }
+
+  .exploded-part.llm {
+    transform: translate(calc(61px * var(--stage-progress)), calc(64px * var(--stage-progress))) !important;
+  }
+}
+
+.exploded-part.llm {
+  transform: translate(calc(78px * var(--stage-progress)), calc(76px * var(--stage-progress))) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
