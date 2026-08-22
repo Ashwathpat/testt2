@@ -1,0 +1,46 @@
+/* Voice RAG latency scene: a smoothly pinned technical panel with a deliberate upper-left composition. */
+.sequence-sticky {
+  transform: translate(-58px, -48px);
+  transition: transform 360ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.exploded-stage {
+  transform: translate(-72px, -56px);
+  transition: transform 360ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.latency-sequence.is-pinned {
+  animation: latency-slide-over 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes latency-slide-over {
+  from {
+    opacity: 0.97;
+    transform: translate3d(0, 88px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (max-width: 760px) {
+  .sequence-sticky {
+    transform: translate(-18px, -22px);
+  }
+
+  .exploded-stage {
+    transform: translate(-20px, -24px) scale(0.86);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sequence-sticky,
+  .exploded-stage {
+    transition: none;
+  }
+
+  .latency-sequence.is-pinned {
+    animation: none;
+  }
+}
