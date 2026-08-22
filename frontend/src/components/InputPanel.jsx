@@ -18,6 +18,13 @@ export default function InputPanel({
   const [recordTimer, setRecordTimer] = useState(0);
   const timerRef = useRef(null);
 
+  const STRATEGY_OPTIONS = [
+    { id: 'fixed_128', label: 'Fixed-128 (Low Latency)' },
+    { id: 'fixed_256', label: 'Fixed-256 (Balanced)' },
+    { id: 'semantic', label: 'Semantic Paragraphs' },
+    { id: 'sentence_window', label: 'Sentence Window' },
+  ];
+
   const STRATEGY_DETAILS = {
     fixed_128: {
       label: 'Fixed-128 (Low Latency)',
@@ -50,6 +57,35 @@ export default function InputPanel({
   };
 
   const currentStratDetails = STRATEGY_DETAILS[strategy] || STRATEGY_DETAILS.fixed_128;
+
+  // Manage live recording timer
+  useEffect(() => {
+    if (isRecording) {
+      setRecordTimer(0);
+      timerRef.current = setInterval(() => {
+        setRecordTimer((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isRecording]);
+
+  const formatTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSubmit();
+    }
+  };
 
   return (
     <div className="glass-card input-card">
