@@ -31,6 +31,7 @@
 .answer-latency-card b { display: block; margin: 9px 0; font-family: "Space Grotesk", sans-serif; font-size: 50px; line-height: 1; letter-spacing: -.09em; }
 .answer-latency-card small { color: #a7aaa2; font-family: "DM Sans", sans-serif; font-size: 12px; letter-spacing: 0; }
 .answer-latency-card em { display: flex; align-items: center; gap: 5px; color: #55d9b1; font-size: 9px; font-style: normal; letter-spacing: .1em; }
+.answer-ttft-card { background: #20312d; }
 .answer-sheet-footer { min-height: 62px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
 .answer-sheet-footer button { display: inline-flex; align-items: center; gap: 7px; background: var(--terracotta); color: white; border-radius: 9px; padding: 10px 13px; cursor: pointer; font-size: 10px; font-weight: 800; }
 .answer-sheet-footer button:disabled { cursor: not-allowed; opacity: .45; filter: saturate(.55); }
