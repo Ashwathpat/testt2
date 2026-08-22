@@ -8,8 +8,8 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-# openai/gpt-oss-20b: clean output, no raw reasoning traces, fast on Groq
-MODEL = "openai/gpt-oss-20b"
+# groq/compound-mini: fast, supports multilingual queries and translates context properly
+MODEL = "groq/compound-mini"
 
 
 def generate_answer(
