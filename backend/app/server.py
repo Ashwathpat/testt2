@@ -2,7 +2,7 @@ import json
 import time
 import os
 import httpx
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -92,7 +92,7 @@ def get_logs():
 async def transcribe(file: UploadFile = File(...)):
     sarvam_api_key = os.getenv("SARVAM_API_KEY", "").strip()
     if not sarvam_api_key:
-        return {"error": "SARVAM_API_KEY is not configured in backend .env file. Please add your Sarvam API key."}
+        raise HTTPException(status_code=500, detail="SARVAM_API_KEY is not configured in backend .env file. Please add your Sarvam API key.")
 
     start_time = time.perf_counter()
 
@@ -121,14 +121,15 @@ async def transcribe(file: UploadFile = File(...)):
                 timeout=30.0
             )
         except Exception as err:
-            return {"error": f"Sarvam STT Network Error: {str(err)}"}
+            raise HTTPException(status_code=503, detail=f"Sarvam STT Network Error: {str(err)}")
 
     stt_latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
     if response.status_code != 200:
-        return {
-            "error": f"Sarvam STT API Error ({response.status_code}): {response.text}"
-        }
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Sarvam STT API Error ({response.status_code}): {response.text}"
+        )
 
     res_data = response.json()
     return {

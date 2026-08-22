@@ -155,7 +155,7 @@ export async function transcribeAudio(audioBlob) {
 
     if (!response.ok) {
       // Requirement #14: Return clear error if Sarvam API call or key fails
-      throw new Error(data.error || `Server error (${response.status}): Failed to transcribe audio.`);
+      throw new Error(data.error || data.detail || `Server error (${response.status}): Failed to transcribe audio.`);
     }
 
     const estimatedDuration = (audioBlob.size / 16000).toFixed(1);
@@ -347,10 +347,20 @@ export async function processQueryStream(
   const generationLatencyMs = Math.max(0, serverTotalMs - retrievalLatencyMs - groundingLatencyMs);
   const totalLatencyMs = ttftMs || serverTotalMs;
 
+  // Strip any <think>...</think> reasoning blocks from final answer
+  let finalAnswer = accumulatedAnswer;
+  if (finalAnswer.includes('<think>')) {
+    if (finalAnswer.includes('</think>')) {
+      finalAnswer = finalAnswer.split('</think>').pop().trimStart();
+    } else {
+      finalAnswer = '';
+    }
+  }
+
   return {
     success: true,
     query: textQuery,
-    answer: accumulatedAnswer,
+    answer: finalAnswer,
     sources,
     status: 'success',
     metrics: {
