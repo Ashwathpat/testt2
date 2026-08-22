@@ -160,7 +160,7 @@ export default function MetricsDashboard({ metrics, isProcessing, pipelinePhase,
         <div className="card-label" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-cyan)' }}>
             <BarChart2 size={16} />
-            <span>Latency Analytics ({strategy.replace('_', ' ')})</span>
+            <span>Latency Analytics ({(strategy || 'fixed_128').replace('_', ' ')})</span>
           </div>
           <span style={{ fontSize: '0.7rem', color: 'var(--accent-purple)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
             Recall: {currentBenchmark.recall}
