@@ -15,7 +15,7 @@ export default function TranscriptView({ transcript, confidence, audioDuration, 
           {confidence && (
             <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-emerald)' }}>
               <CheckCircle2 size={12} />
-              {(confidence * 100).toFixed(0)}% Match
+              {(((confidence || 0) * 100)).toFixed(0)}% Match
             </span>
           )}
           {sttLatency > 0 && (

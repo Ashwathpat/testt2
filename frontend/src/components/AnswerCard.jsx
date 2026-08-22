@@ -108,7 +108,7 @@ export default function AnswerCard({ answer, sources, timestamp, isProcessing, s
           </p>
           {reason && (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.5rem', marginBottom: 0 }}>
-              Reason: {reason.replace(/_/g, ' ')}
+              Reason: {(reason || '').replace(/_/g, ' ')}
             </p>
           )}
         </div>
@@ -148,7 +148,7 @@ export default function AnswerCard({ answer, sources, timestamp, isProcessing, s
                     {src.title}
                   </span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
-                    {(src.score * 100).toFixed(0)}% Match
+                    {(((src.score || 0) * 100)).toFixed(0)}% Match
                   </span>
                 </div>
                 <div className="source-snippet">"{src.snippet}"</div>
