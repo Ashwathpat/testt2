@@ -136,8 +136,8 @@ def retrieve_context(query: str, k: int = DEFAULT_K) -> list[dict]:
             best_score = sim
             best_hits = cached_hits
 
-    # If semantically similar query was seen before (cosine sim >= 0.78), return instantly!
-    if best_score >= 0.78 and best_hits:
+    # If nearly identical query was seen before (cosine sim >= 0.95), return instantly!
+    if best_score >= 0.95 and best_hits:
         return best_hits[:k]
 
     # 3. Qdrant Cloud search

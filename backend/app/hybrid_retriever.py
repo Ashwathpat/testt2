@@ -349,7 +349,7 @@ def hybrid_retrieve_context(
             best_sim = sim
             best_hits = cached_hits
 
-    if best_sim >= 0.78 and best_hits:
+    if best_sim >= 0.95 and best_hits:
         metadata["cache_hit"] = True
         metadata["retrieval_method"] = "semantic_cache"
         metadata["timings"]["total_ms"] = (

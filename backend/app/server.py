@@ -160,7 +160,7 @@ def ask(request: AskRequest):
             best_score = sim
             cached_answer, cached_chunks = c_ans, c_chunks
             
-    if best_score >= 0.78 and cached_answer:
+    if best_score >= 0.95 and cached_answer:
         # Cache hit!
         result_status = "success"
         result_answer = cached_answer
@@ -270,7 +270,7 @@ def ask_stream(request: AskRequest):
 
     def event_generator():
         # Check cache hit
-        if best_score >= 0.78 and cached_answer:
+        if best_score >= 0.95 and cached_answer:
             ttft_ms = round((time.perf_counter() - t_start) * 1000, 2)
             meta = {
                 "type": "metadata",
