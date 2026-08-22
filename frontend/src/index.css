@@ -57,7 +57,7 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(200,91,50
 .empty-glyph { width: 48px; height: 48px; border-radius: 15px; background: #faf9f5; color: var(--terracotta); display: grid; place-items: center; margin-bottom: 15px; }
 .empty-history p { margin: 0 0 8px; color: var(--ink-soft); font-size: 13px; font-weight: 700; }
 .empty-history span { font-size: 11px; line-height: 1.6; }
-.history-list { margin-top: 20px; display: grid; gap: 8px; }
+.history-list { min-height: 0; flex: 1; margin-top: 20px; display: grid; align-content: start; gap: 8px; overflow-y: auto; }
 .history-item { position: relative; text-align: left; padding: 12px 28px 12px 12px; border-radius: 12px; background: rgba(247,245,240,.72); cursor: pointer; transition: background .18s ease, transform .18s ease; }
 .history-item:hover { background: #fff; transform: translateX(2px); }
 .history-item strong, .history-item span { display: block; }

@@ -6,6 +6,13 @@
 .transcript-band p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.45; }
 .transcript-band > span { color: var(--terracotta); font-family: "Space Grotesk", sans-serif; font-size: 18px; white-space: nowrap; }
 .task-readiness { margin: 16px 2px 0; padding: 16px; }
+.history-task-readiness { margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line); }
+.history-task-readiness .task-readiness-head h2 { font-size: 14px; }
+.history-task-readiness .task-status { padding: 5px 7px; font-size: 7px; }
+.history-task-readiness .readiness-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 11px; }
+.history-task-readiness .readiness-grid > div { min-height: 58px; padding: 8px; border-radius: 8px; }
+.history-task-readiness .readiness-grid b { margin-top: 4px; font-size: 11px; }
+.history-task-readiness .readiness-grid small { margin-top: 3px; font-size: 8px; }
 .task-readiness-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .task-readiness-head h2 { margin: 7px 0 0; font-family: "Space Grotesk", sans-serif; font-size: 16px; letter-spacing: -.03em; }
 .task-status { padding: 6px 8px; border-radius: 999px; background: var(--mint); color: var(--teal); font-size: 8px; font-weight: 800; letter-spacing: .12em; }

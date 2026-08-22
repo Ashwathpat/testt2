@@ -42,8 +42,8 @@ function Header() {
   return <header className="topbar"><Logo /><div className="topbar-center"><span className="live-dot" /> <span>WORKSPACE / GOA 2026</span><span className="slash">/</span><span className="muted">TASK 02</span></div><div className="topbar-actions"><div className="status-pill"><span className="pulse-dot" /> PIPELINE READY</div><button className="icon-button" aria-label="Help"><HelpCircle size={17} /></button><button className="avatar" aria-label="Profile">A</button></div></header>;
 }
 
-function HistoryRail({ messages, onClear }) {
-  return <aside className="history-rail panel"><div className="panel-heading"><div><span className="eyebrow"><Archive size={13} /> SESSION LOG</span><h2>Chat history</h2></div><button className="text-button" onClick={onClear}>{messages.length ? "Clear" : "Reset"}</button></div>{messages.length === 0 ? <div className="empty-history"><div className="empty-glyph"><AudioLines size={24} /></div><p>No past voice queries yet.</p><span>Submit a query to start building your chat history.</span></div> : <div className="history-list">{messages.map((message) => <button className="history-item" key={message.id}><span className="history-time">{message.time}</span><strong>{message.query}</strong><span>{message.source}</span><ArrowUpRight size={14} /></button>)}</div>}<div className="rail-footer"><div className="rail-footer-icon"><Layers3 size={15} /></div><div><span>MEMORY INDEX</span><strong>{messages.length ? "Live response log" : "Awaiting query"}</strong></div></div></aside>;
+function HistoryRail({ messages, onClear, guardrail, transcript, sttStatus }) {
+  return <aside className="history-rail panel"><div className="panel-heading"><div><span className="eyebrow"><Archive size={13} /> SESSION LOG</span><h2>Chat history</h2></div><button className="text-button" onClick={onClear}>{messages.length ? "Clear" : "Reset"}</button></div>{messages.length === 0 ? <div className="empty-history"><div className="empty-glyph"><AudioLines size={24} /></div><p>No past voice queries yet.</p><span>Submit a query to start building your chat history.</span></div> : <div className="history-list">{messages.map((message) => <button className="history-item" key={message.id}><span className="history-time">{message.time}</span><strong>{message.query}</strong><span>{message.source}</span><ArrowUpRight size={14} /></button>)}</div>}<div className="rail-footer"><div className="rail-footer-icon"><Layers3 size={15} /></div><div><span>MEMORY INDEX</span><strong>{messages.length ? "Live response log" : "Awaiting query"}</strong></div></div><TaskReadiness compact guardrail={guardrail} transcript={transcript} sttStatus={sttStatus} /></aside>;
 }
 
 function LiveExecutionPanel({ metrics, processing, phase, guardrail }) {
@@ -66,8 +66,12 @@ function LiveAnalytics({ metrics, latencyHistory }) {
   return <section className="panel analytics-panel"><div className="analytics-title"><Gauge size={15} /><span>Latency analytics <b>({latencyHistory.length} live runs)</b></span><strong>{confidence ? `Quality: ${(confidence * 100).toFixed(1)}%` : "Awaiting trace"}</strong></div><div className="analytics-grid"><div><span>P50</span><b>{metricValue(p50)} <small>ms</small></b></div><div><span>P70</span><b>{metricValue(p70)} <small>ms</small></b></div><div><span>P100</span><b>{metricValue(p100)} <small>ms</small></b></div></div><div className="latency-target"><span>TARGET</span><b>&lt; 200 ms</b><em>{numberOrNull(endToEnd) ? `${formatMs(endToEnd)} latest` : "Awaiting backend response"}</em></div></section>;
 }
 
-function TaskReadiness({ guardrail, transcript, sttStatus }) {
-  return <section className="panel task-readiness"><div className="task-readiness-head"><div><span className="eyebrow"><Sparkles size={13} /> TASK 02 READINESS</span><h2>Voice RAG requirements</h2></div><span className="task-status">LIVE</span></div><div className="readiness-grid"><div><span>DATASET</span><b>MSMARCO-XI</b><small>AI4Bharat multilingual corpus</small></div><div><span>STT</span><b>Sarvam proxy</b><small>{sttStatus || "Ready for microphone input"}</small></div><div><span>CHUNKING</span><b>4 strategies</b><small>Fixed, semantic, windowed</small></div><div><span>HARNESS</span><b>SSE orchestration</b><small>Error-aware streaming flow</small></div><div><span>GUARDRAIL</span><b>{guardrail?.grounded ? "Grounded" : "Armed"}</b><small>{guardrail?.reason || "Off-topic and evidence checks"}</small></div><div><span>TRANSCRIPT</span><b>{transcript ? "Captured" : "Waiting"}</b><small>{transcript ? `${transcript.slice(0, 34)}${transcript.length > 34 ? "…" : ""}` : "Speak, then tap the mic again"}</small></div></div></section>;
+function TaskReadiness({ guardrail, transcript, sttStatus, compact = false }) {
+  const transcriptSummary = transcript
+    ? `${transcript.slice(0, 34)}${transcript.length > 34 ? "…" : ""}`
+    : "Speak, then tap the mic again";
+
+  return <section className={compact ? "task-readiness history-task-readiness" : "panel task-readiness"}><div className="task-readiness-head"><div><span className="eyebrow"><Sparkles size={13} /> TASK 02 READINESS</span><h2>Voice RAG requirements</h2></div><span className="task-status">LIVE</span></div><div className="readiness-grid"><div><span>DATASET</span><b>MSMARCO-XI</b><small>AI4Bharat multilingual corpus</small></div><div><span>STT</span><b>Sarvam proxy</b><small>{sttStatus || "Ready for microphone input"}</small></div><div><span>CHUNKING</span><b>4 strategies</b><small>Fixed, semantic, windowed</small></div><div><span>HARNESS</span><b>SSE orchestration</b><small>Error-aware streaming flow</small></div><div><span>GUARDRAIL</span><b>{guardrail?.grounded ? "Grounded" : "Armed"}</b><small>{guardrail?.reason || "Off-topic and evidence checks"}</small></div><div><span>TRANSCRIPT</span><b>{transcript ? "Captured" : "Waiting"}</b><small>{transcriptSummary}</small></div></div></section>;
 }
 
 function TranscriptBand({ transcript, sttStatus, metrics }) {
@@ -88,8 +92,58 @@ function LatencySequence({ metrics }) {
   const traceProgress = Math.min(1, Math.max(0, (progress - 0.16) / 0.84));
   const activeStage = Math.min(3, Math.floor(traceProgress * 4.05));
   const activeStageData = stages[activeStage];
-  useEffect(() => { const update = () => { const panel = sectionRef.current; const scene = panel?.parentElement; if (!panel || !scene) return; const start = scene.offsetTop; const travel = Math.max(1, scene.offsetHeight - window.innerHeight); const raw = (window.scrollY - start) / travel; setProgress(Math.min(1, Math.max(0, raw))); setIsPinned(raw >= -0.12); }; update(); window.addEventListener("scroll", update, { passive: true }); window.addEventListener("resize", update); return () => { window.removeEventListener("scroll", update); window.removeEventListener("resize", update); }; }, []);
-  return <section ref={sectionRef} className={`latency-sequence ${isPinned ? "is-pinned" : ""}`}><div className="sequence-sticky"><div className="sequence-topline"><span>TRACE VISUALIZER / LIVE</span><b>{metrics.retrievalMethod || "AWAITING BACKEND"} <i /> {total} TOTAL</b></div><div className="sequence-scroll-cue"><span>SCROLL</span><b>04 STAGES</b><i /></div><div className="sequence-intro"><span className="eyebrow"><Activity size={13} /> LIVE LATENCY DECOMPOSITION</span><h2>See where the<br /><em>milliseconds go.</em></h2><p>Each value comes from the latest backend trace. Scroll to inspect how the pipeline separates.</p><div className="sequence-progress"><span><b>{Math.round(traceProgress * 100)}%</b> TRACE EXPOSURE</span><i><b style={{ width: `${Math.max(4, traceProgress * 100)}%` }} /></i></div><div className="active-stage-card" style={{ "--active-color": activeStageData.color }}><span>NOW INSPECTING / 0{activeStage + 1}</span><strong>{activeStageData.label}</strong><b>{activeStageData.value} <small>ms contribution</small></b><em>{activeStageData.detail}</em></div></div><div className="exploded-stage"><div className="exploded-core"><div className="core-grid" /><span>VOICE RAG</span><strong>{total}<small> ms</small></strong><em>{total === "—" ? "AWAITING BACKEND" : traceProgress > .88 ? "TRACE COMPLETE" : `STAGE 0${activeStage + 1} / 04`}</em></div><div className="trace-crosshair" />{stages.map((stage, index) => { const stageReveal = Math.min(1, Math.max(0, traceProgress * 4 - index * .74)); return <div className={`exploded-part ${stage.key} ${index === activeStage ? "is-active" : ""}`} key={stage.key} style={{ "--stage-color": stage.color, "--stage-index": index, "--stage-progress": stageReveal }}><div className="part-node" /><div className="part-line" /><div className="part-copy"><span>{String(index + 1).padStart(2, "0")} / {stage.detail}</span><strong>{stage.label}</strong><b>{stage.value} <small>ms</small></b></div></div>; })}<div className="exploded-axis"><span>0 ms</span><i /><span>{total} · live response</span></div></div></div></section>;
+  const traceWidth = `${Math.max(4, traceProgress * 100)}%`;
+
+  useEffect(() => {
+    const update = () => {
+      const panel = sectionRef.current;
+      const scene = panel?.parentElement;
+      if (!panel || !scene) return;
+      const start = scene.offsetTop;
+      const travel = Math.max(1, scene.offsetHeight - window.innerHeight);
+      const raw = (window.scrollY - start) / travel;
+      setProgress(Math.min(1, Math.max(0, raw)));
+      setIsPinned(raw >= -0.12);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  return (
+    <section ref={sectionRef} className={isPinned ? "latency-sequence is-pinned" : "latency-sequence"}>
+      <div className="sequence-sticky">
+        <div className="sequence-topline">
+          <span>TRACE VISUALIZER / LIVE</span>
+          <b>{metrics.retrievalMethod || "AWAITING BACKEND"} <i /> {total} TOTAL</b>
+        </div>
+        <div className="sequence-scroll-cue"><span>SCROLL</span><b>04 STAGES</b><i /></div>
+        <div className="sequence-intro">
+          <span className="eyebrow"><Activity size={13} /> LIVE LATENCY DECOMPOSITION</span>
+          <h2>See where the<br /><em>milliseconds go.</em></h2>
+          <p>Each value comes from the latest backend trace. Scroll to inspect how the pipeline separates.</p>
+          <div className="sequence-progress"><span><b>{Math.round(traceProgress * 100)}%</b> TRACE EXPOSURE</span><i><b style={{ width: traceWidth }} /></i></div>
+          <div className="active-stage-card" style={{ "--active-color": activeStageData.color }}>
+            <span>NOW INSPECTING / 0{activeStage + 1}</span><strong>{activeStageData.label}</strong><b>{activeStageData.value} <small>ms contribution</small></b><em>{activeStageData.detail}</em>
+          </div>
+        </div>
+        <div className="exploded-stage">
+          <div className="exploded-core"><div className="core-grid" /><span>VOICE RAG</span><strong>{total}<small> ms</small></strong><em>{total === "—" ? "AWAITING BACKEND" : traceProgress > .88 ? "TRACE COMPLETE" : `STAGE 0${activeStage + 1} / 04`}</em></div>
+          <div className="trace-crosshair" />
+          {stages.map((stage, index) => {
+            const stageReveal = Math.min(1, Math.max(0, traceProgress * 4 - index * .74));
+            const classes = `exploded-part ${stage.key} ${index === activeStage ? "is-active" : ""}`;
+            return <div className={classes} key={stage.key} style={{ "--stage-color": stage.color, "--stage-index": index, "--stage-progress": stageReveal }}><div className="part-node" /><div className="part-line" /><div className="part-copy"><span>{String(index + 1).padStart(2, "0")} / {stage.detail}</span><strong>{stage.label}</strong><b>{stage.value} <small>ms</small></b></div></div>;
+          })}
+          <div className="exploded-axis"><span>0 ms</span><i /><span>{total} · live response</span></div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function QueryStage({ onSubmit, onMicToggle, isListening, isProcessing, error, strategy, setStrategy }) {
@@ -179,5 +233,5 @@ export default function App() {
 
   const resetCache = async () => { await clearCache(); setMetrics(emptyMetrics); setLatencyHistory([]); setGuardrail(null); };
 
-  return <div className="slide-deck"><section className="slide-scene slide-one"><div className="app-shell"><Header /><div className="dashboard-layout"><HistoryRail messages={messages} onClear={() => setMessages([])} /><div className="main-workspace"><QueryStage onSubmit={runQuery} onMicToggle={toggleMicrophone} isListening={isListening} isProcessing={isProcessing} error={error} strategy={strategy} setStrategy={setStrategy} /><TranscriptBand transcript={transcript} sttStatus={sttStatus} metrics={metrics} /><TaskReadiness guardrail={guardrail} transcript={transcript} sttStatus={sttStatus} /></div><aside className="telemetry-rail"><LiveExecutionPanel metrics={metrics} processing={isProcessing} phase={pipelinePhase} guardrail={guardrail} /><LiveAnalytics metrics={metrics} latencyHistory={latencyHistory} /><section className="panel cache-panel"><div><span className="eyebrow"><Archive size={13} /> CACHE</span><strong>Backend retrieval cache</strong></div><button className="clear-cache" onClick={resetCache}><Trash2 size={13} /> Clear</button></section></aside></div><footer className="bottom-status"><span><span className="live-dot" /> Live backend environment</span><span>{metrics.retrievalMethod || "Awaiting first request"}</span><span>{formatMs(metrics.endToEndLatencyMs ?? metrics.streamRoundTripLatencyMs ?? metrics.serverTotalMs ?? metrics.totalLatencyMs)}</span></footer></div></section><section className="slide-scene slide-two"><LatencySequence metrics={metrics} /></section><AnswerDock answer={latestAnswer} metrics={metrics} isOpen={answersOpen} setIsOpen={setAnswersOpen} /></div>;
+  return <div className="slide-deck"><section className="slide-scene slide-one"><div className="app-shell"><Header /><div className="dashboard-layout"><HistoryRail messages={messages} onClear={() => setMessages([])} guardrail={guardrail} transcript={transcript} sttStatus={sttStatus} /><div className="main-workspace"><QueryStage onSubmit={runQuery} onMicToggle={toggleMicrophone} isListening={isListening} isProcessing={isProcessing} error={error} strategy={strategy} setStrategy={setStrategy} /><TranscriptBand transcript={transcript} sttStatus={sttStatus} metrics={metrics} /></div><aside className="telemetry-rail"><LiveExecutionPanel metrics={metrics} processing={isProcessing} phase={pipelinePhase} guardrail={guardrail} /><LiveAnalytics metrics={metrics} latencyHistory={latencyHistory} /><section className="panel cache-panel"><div><span className="eyebrow"><Archive size={13} /> CACHE</span><strong>Backend retrieval cache</strong></div><button className="clear-cache" onClick={resetCache}><Trash2 size={13} /> Clear</button></section></aside></div><footer className="bottom-status"><span><span className="live-dot" /> Live backend environment</span><span>{metrics.retrievalMethod || "Awaiting first request"}</span><span>{formatMs(metrics.endToEndLatencyMs ?? metrics.streamRoundTripLatencyMs ?? metrics.serverTotalMs ?? metrics.totalLatencyMs)}</span></footer></div></section><section className="slide-scene slide-two"><LatencySequence metrics={metrics} /></section><AnswerDock answer={latestAnswer} metrics={metrics} isOpen={answersOpen} setIsOpen={setAnswersOpen} /></div>;
 }
