@@ -90,53 +90,53 @@ def get_logs():
 
 @app.post("/api/transcribe")
 async def transcribe(file: UploadFile = File(...)):
-    groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if not groq_api_key:
-        return {"error": "GROQ_API_KEY is not configured in backend .env file. Please paste your Groq API key to enable live Speech-to-Text."}
+    sarvam_api_key = os.getenv("SARVAM_API_KEY", "").strip()
+    if not sarvam_api_key:
+        return {"error": "SARVAM_API_KEY is not configured in backend .env file. Please add your Sarvam API key."}
 
     start_time = time.perf_counter()
 
     # Read file bytes
     file_bytes = await file.read()
 
-    # Proxy to Groq Whisper
+    # Proxy to Sarvam AI Speech-to-Text (saaras:v4 — supports 22 Indian languages + English)
     async with httpx.AsyncClient() as client:
         files = {
             "file": (file.filename or "recording.webm", file_bytes, file.content_type or "audio/webm")
         }
         data = {
-            "model": "whisper-large-v3-turbo",
-            "prompt": "Please transcribe the audio exactly as spoken in the native language (e.g., Kannada, Hindi, Tamil, Telugu). Do not translate it to English. Use native scripts."
+            "model": "saaras:v4",
+            "with_timestamps": "false"
         }
         headers = {
-            "Authorization": f"Bearer {groq_api_key}"
+            "api-subscription-key": sarvam_api_key
         }
 
         try:
             response = await client.post(
-                "https://api.groq.com/openai/v1/audio/transcriptions",
+                "https://api.sarvam.ai/speech-to-text",
                 files=files,
                 data=data,
                 headers=headers,
                 timeout=30.0
             )
         except Exception as err:
-            return {"error": f"STT Backend Network Error: {str(err)}"}
+            return {"error": f"Sarvam STT Network Error: {str(err)}"}
 
     stt_latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
     if response.status_code != 200:
         return {
-            "error": f"Groq STT API Error ({response.status_code}): {response.text}"
+            "error": f"Sarvam STT API Error ({response.status_code}): {response.text}"
         }
 
     res_data = response.json()
     return {
         "success": True,
-        "transcript": res_data.get("text", ""),
+        "transcript": res_data.get("transcript", ""),
         "confidence": 0.98,
         "sttLatency": stt_latency_ms,
-        "languageCode": "en-IN"
+        "languageCode": res_data.get("language_code", "unknown")
     }
 
 

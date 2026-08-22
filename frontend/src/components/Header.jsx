@@ -10,7 +10,7 @@ export default function Header() {
         </div>
         <div>
           <div className="brand-title">HH Goa 2026 — Task 2</div>
-          <div className="brand-subtitle">Groq Whisper & Voice RAG Pipeline</div>
+          <div className="brand-subtitle">Sarvam AI Speech & Voice RAG Pipeline</div>
         </div>
       </div>
 
@@ -24,7 +24,7 @@ export default function Header() {
           }}
         >
           <Zap size={13} />
-          GROQ WHISPER STT READY
+          SARVAM STT READY
         </span>
         <span className="badge badge-status">
           <ShieldCheck size={13} />

@@ -360,7 +360,7 @@ function TechnicalHighlights() {
               ⚡ 71ms Time-To-First-Token (TTFT)
             </div>
             <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-              Sub-200ms target achieved via local ONNX vectorization (`multilingual-e5-small`) and Groq Whisper Turbo streaming STT.
+              Sub-200ms target achieved via local ONNX vectorization (`multilingual-e5-small`) and Sarvam AI streaming STT.
             </p>
           </div>
 
