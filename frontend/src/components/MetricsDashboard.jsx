@@ -128,7 +128,7 @@ export default function MetricsDashboard({ metrics, isProcessing, pipelinePhase 
               <div className="metric-icon" style={{ background: 'rgba(0, 0, 0, 0.05)', color: 'var(--text-primary)' }}>
                 <Clock size={14} />
               </div>
-              <span className="metric-label" style={{ fontWeight: 600 }}>End-to-End Total</span>
+              <span className="metric-label" style={{ fontWeight: 600 }}>RAG Pipeline Total</span>
             </div>
             <span className="metric-value" style={{ color: 'var(--text-primary)', fontWeight: 800 }}>
               {m.totalLatencyMs > 0 ? `${Math.round(m.totalLatencyMs)} ms` : '—'}

@@ -207,7 +207,7 @@ export async function processQuery(textQuery, sttLatencyMs = 0, onProgress = () 
 
   const retrievalLatencyMs = data.retrieval_ms || 0;
   const generationLatencyMs = data.generation_pipeline_ms || 0;
-  const totalLatencyMs = sttLatencyMs + (data.server_total_ms || retrievalLatencyMs + generationLatencyMs);
+  const totalLatencyMs = data.server_total_ms || retrievalLatencyMs + generationLatencyMs;
 
   return {
     success: data.status === 'success',
@@ -324,7 +324,7 @@ export async function processQueryStream(
   }
 
   const generationLatencyMs = Math.max(0, serverTotalMs - retrievalLatencyMs - groundingLatencyMs);
-  const totalLatencyMs = sttLatencyMs + serverTotalMs;
+  const totalLatencyMs = ttftMs || serverTotalMs;
 
   return {
     success: true,
