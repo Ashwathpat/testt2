@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { clearCache, processQueryStream } from "./services/api";
+import { clearCache, processQueryStream, transcribeAudio } from "./services/api";
 import {
   Activity, AlertTriangle, Archive, ArrowUpRight, AudioLines, Bot, BrainCircuit,
   Check, Database, Gauge, HelpCircle, Layers3, Mic2, Minimize2, Paperclip,
@@ -72,12 +72,11 @@ function LatencySequence({ metrics }) {
   return <section ref={sectionRef} className={`latency-sequence ${isPinned ? "is-pinned" : ""}`}><div className="sequence-sticky"><div className="sequence-topline"><span>TRACE VISUALIZER / LIVE</span><b>{metrics.retrievalMethod || "AWAITING BACKEND"} <i /> {total} TOTAL</b></div><div className="sequence-scroll-cue"><span>SCROLL</span><b>04 STAGES</b><i /></div><div className="sequence-intro"><span className="eyebrow"><Activity size={13} /> LIVE LATENCY DECOMPOSITION</span><h2>See where the<br /><em>milliseconds go.</em></h2><p>Each value comes from the latest backend trace. Scroll to inspect how the pipeline separates.</p><div className="sequence-progress"><span><b>{Math.round(traceProgress * 100)}%</b> TRACE EXPOSURE</span><i><b style={{ width: `${Math.max(4, traceProgress * 100)}%` }} /></i></div><div className="active-stage-card" style={{ "--active-color": activeStageData.color }}><span>NOW INSPECTING / 0{activeStage + 1}</span><strong>{activeStageData.label}</strong><b>{activeStageData.value} <small>ms contribution</small></b><em>{activeStageData.detail}</em></div></div><div className="exploded-stage"><div className="exploded-core"><div className="core-grid" /><span>VOICE RAG</span><strong>{total}<small> ms</small></strong><em>{total === "—" ? "AWAITING BACKEND" : traceProgress > .88 ? "TRACE COMPLETE" : `STAGE 0${activeStage + 1} / 04`}</em></div><div className="trace-crosshair" />{stages.map((stage, index) => { const stageReveal = Math.min(1, Math.max(0, traceProgress * 4 - index * .74)); return <div className={`exploded-part ${stage.key} ${index === activeStage ? "is-active" : ""}`} key={stage.key} style={{ "--stage-color": stage.color, "--stage-index": index, "--stage-progress": stageReveal }}><div className="part-node" /><div className="part-line" /><div className="part-copy"><span>{String(index + 1).padStart(2, "0")} / {stage.detail}</span><strong>{stage.label}</strong><b>{stage.value} <small>ms</small></b></div></div>; })}<div className="exploded-axis"><span>0 ms</span><i /><span>{total} · live response</span></div></div></div></section>;
 }
 
-function QueryStage({ onSubmit, isListening, setIsListening, isProcessing, error }) {
+function QueryStage({ onSubmit, isListening, setIsListening, isProcessing, error, strategy, setStrategy }) {
   const [query, setQuery] = useState("");
-  const [selectedStrategy, setSelectedStrategy] = useState("fixed_128");
   const selectedPreset = useMemo(() => presets.find((preset) => preset.query === query)?.label, [query]);
-  const ask = () => { if (query.trim() && !isProcessing) { onSubmit(query.trim(), selectedStrategy); setQuery(""); } };
-  return <main className="query-stage"><div className="stage-kicker"><span className="signal-line" /> VOICE RAG WORKBENCH <span className="stage-id">/ LIVE</span></div><div className="hero-copy"><h1>Ask the<br /><span>knowledge layer.</span></h1><p>Live backend answers grounded in your documents, with each retrieval step visible.</p></div><section className="query-panel panel"><div className="query-panel-header"><div><span className="eyebrow"><Sparkles size={13} /> CHUNKING STRATEGY</span><h2>Choose your retrieval profile</h2></div><span className="recall-badge">Backend <b>connected</b></span></div><div className="strategy-tabs" role="tablist">{[["fixed_128", "Fixed-128", "Low latency"], ["fixed_256", "Fixed-256", "Balanced"], ["semantic", "Semantic", "Paragraphs"], ["sentence_window", "Window", "Sentence"]].map(([value, label, detail]) => <button key={value} className={selectedStrategy === value ? "selected" : ""} onClick={() => setSelectedStrategy(value)} role="tab" aria-selected={selectedStrategy === value}><strong>{label}</strong><span>{detail}</span></button>)}</div><div className="strategy-note"><Zap size={14} /><strong>Live pipeline</strong><span> Backend response timings populate the dashboard.</span><AlertTriangle size={14} /><span className="warning-copy">Values appear after the first request.</span></div><div className="preset-label">TRY A PRESET QUERY</div><div className="preset-row">{presets.map((preset) => <button className={selectedPreset === preset.label ? "preset active" : "preset"} key={preset.label} onClick={() => setQuery(preset.query)}><span>{preset.icon}</span>{preset.label}</button>)}</div><div className={`composer ${isListening ? "listening" : ""}`}><textarea value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) ask(); }} placeholder="Ask a question about Voice RAG, your source library, or low-latency retrieval…" aria-label="Question for the assistant" /><div className="composer-footer"><button className={`mic-button ${isListening ? "active" : ""}`} onClick={() => setIsListening(!isListening)} aria-label={isListening ? "Stop listening" : "Start listening"}><span className="mic-orb">{isListening ? <Pause size={20} /> : <Mic2 size={20} />}</span><span>{isListening ? "Listening…" : "Click mic to speak"}</span></button><span className="keyboard-hint">⌘ ↵ to ask</span><button className="ask-button" onClick={ask} disabled={isProcessing}>{isProcessing ? <><RotateCcw className="spin" size={15} /> Running pipeline</> : <>Ask assistant <Send size={15} /></>}</button></div>{error && <div className="error-banner">{error}</div>}</div></section><div className="architecture-strip"><div className="architecture-title"><div className="orbit-icon"><BrainCircuit size={17} /></div><div><span className="eyebrow">SYSTEM ARCHITECTURE</span><strong>Retrieval → grounding → synthesis</strong></div></div><div className="architecture-visual"><Waves size={20} /><span>LIVE BACKEND</span></div><button className="text-button">Inspect spec <ArrowUpRight size={14} /></button></div></main>;
+  const ask = () => { if (query.trim() && !isProcessing) { onSubmit(query.trim(), strategy); setQuery(""); } };
+  return <main className="query-stage"><div className="stage-kicker"><span className="signal-line" /> VOICE RAG WORKBENCH <span className="stage-id">/ LIVE</span></div><div className="hero-copy"><h1>Ask the<br /><span>knowledge layer.</span></h1><p>Live backend answers grounded in your documents, with each retrieval step visible.</p></div><section className="query-panel panel"><div className="query-panel-header"><div><span className="eyebrow"><Sparkles size={13} /> CHUNKING STRATEGY</span><h2>Choose your retrieval profile</h2></div><span className="recall-badge">Backend <b>connected</b></span></div><div className="strategy-tabs" role="tablist">{[["fixed_128", "Fixed-128", "Low latency"], ["fixed_256", "Fixed-256", "Balanced"], ["semantic", "Semantic", "Paragraphs"], ["sentence_window", "Window", "Sentence"]].map(([value, label, detail]) => <button key={value} className={strategy === value ? "selected" : ""} onClick={() => setStrategy(value)} role="tab" aria-selected={strategy === value}><strong>{label}</strong><span>{detail}</span></button>)}</div><div className="strategy-note"><Zap size={14} /><strong>Live pipeline</strong><span> Backend response timings populate the dashboard.</span><AlertTriangle size={14} /><span className="warning-copy">Values appear after the first request.</span></div><div className="preset-label">TRY A PRESET QUERY</div><div className="preset-row">{presets.map((preset) => <button className={selectedPreset === preset.label ? "preset active" : "preset"} key={preset.label} onClick={() => setQuery(preset.query)}><span>{preset.icon}</span>{preset.label}</button>)}</div><div className={`composer ${isListening ? "listening" : ""}`}><textarea value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) ask(); }} placeholder="Ask a question about Voice RAG, your source library, or low-latency retrieval…" aria-label="Question for the assistant" /><div className="composer-footer"><button className={`mic-button ${isListening ? "active" : ""}`} onClick={() => setIsListening(!isListening)} aria-label={isListening ? "Stop listening" : "Start listening"}><span className="mic-orb">{isListening ? <Pause size={20} /> : <Mic2 size={20} />}</span><span>{isListening ? "Listening…" : "Click mic to speak"}</span></button><span className="keyboard-hint">⌘ ↵ to ask</span><button className="ask-button" onClick={ask} disabled={isProcessing}>{isProcessing ? <><RotateCcw className="spin" size={15} /> Running pipeline</> : <>Ask assistant <Send size={15} /></>}</button></div>{error && <div className="error-banner">{error}</div>}</div></section><div className="architecture-strip"><div className="architecture-title"><div className="orbit-icon"><BrainCircuit size={17} /></div><div><span className="eyebrow">SYSTEM ARCHITECTURE</span><strong>Retrieval → grounding → synthesis</strong></div></div><div className="architecture-visual"><Waves size={20} /><span>LIVE BACKEND</span></div><button className="text-button">Inspect spec <ArrowUpRight size={14} /></button></div></main>;
 }
 
 function AnswerDock({ answer, metrics, isOpen, setIsOpen }) {
@@ -94,12 +93,133 @@ export default function App() {
   const [metrics, setMetrics] = useState(emptyMetrics);
   const [latestAnswer, setLatestAnswer] = useState(null);
   const [answersOpen, setAnswersOpen] = useState(false);
+  const [strategy, setStrategy] = useState("fixed_128");
 
-  const submitQuery = async (query, strategy) => {
+  // MediaRecorder states for audio STT (Sarvam AI integration)
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
+  // Auto-recording logic tied to the listening state toggle
+  useEffect(() => {
+    if (isListening) {
+      startRecording();
+    } else {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+    }
+  }, [isListening]);
+
+  const startRecording = async () => {
+    setError("");
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Microphone access is not supported in this browser.");
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      audioChunksRef.current = [];
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 16000,
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mimeType,
+        });
+
+        if (audioBlob.size === 0) {
+          setError("Recording is empty — no audio was captured.");
+          return;
+        }
+
+        await handleAudioProcess(audioBlob);
+      };
+
+      mediaRecorder.start();
+    } catch (err) {
+      console.warn("Microphone error:", err);
+      setError("Microphone permission denied or device not found.");
+      setIsListening(false);
+    }
+  };
+
+  const handleAudioProcess = async (audioBlob) => {
+    setError("");
+    setIsProcessing(true);
+    setPipelinePhase("transcribing");
+    setLatestAnswer({ query: "Transcribing audio...", answer: "", source: "Sarvam STT..." });
+
+    try {
+      // Step 1: Transcribe via our Sarvam API proxy
+      const sttResponse = await transcribeAudio(audioBlob);
+      const transcribedQuery = sttResponse.transcript;
+
+      if (!transcribedQuery || !transcribedQuery.trim()) {
+        throw new Error("Could not transcribe any speech. Please speak clearly.");
+      }
+
+      // Step 2: Stream RAG response for the transcribed text
+      setPipelinePhase("retrieving");
+      setLatestAnswer({ query: transcribedQuery, answer: "", source: "Receiving live backend response…" });
+
+      const result = await processQueryStream(
+        transcribedQuery,
+        sttResponse.sttLatency,
+        (answer) => setLatestAnswer((current) => ({ ...current, answer })),
+        setPipelinePhase,
+        (metadata) => setMetrics((current) => ({ ...current, ...metadata })),
+        strategy
+      );
+
+      setMetrics((current) => ({ ...current, ...result.metrics, sttLatencyMs: sttResponse.sttLatency }));
+      const complete = {
+        id: Date.now(),
+        query: transcribedQuery,
+        answer: result.answer,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        source: result.sources?.[0]?.title || "Live RAG backend",
+      };
+      setLatestAnswer(complete);
+      setMessages((current) => [complete, ...current]);
+      setAnswersOpen(true);
+    } catch (requestError) {
+      setError(requestError.message || "An error occurred during audio processing.");
+    } finally {
+      setIsProcessing(false);
+      setPipelinePhase("");
+      setIsListening(false);
+    }
+  };
+
+  const submitQuery = async (query, selectedStrategy) => {
     setError(""); setIsProcessing(true); setPipelinePhase("retrieving");
     setLatestAnswer({ query, answer: "", source: "Receiving live backend response…" });
     try {
-      const result = await processQueryStream(query, 0, (answer) => setLatestAnswer((current) => ({ ...current, answer })), setPipelinePhase, (metadata) => setMetrics((current) => ({ ...current, ...metadata })), strategy);
+      const result = await processQueryStream(query, 0, (answer) => setLatestAnswer((current) => ({ ...current, answer })), setPipelinePhase, (metadata) => setMetrics((current) => ({ ...current, ...metadata })), selectedStrategy);
       setMetrics((current) => ({ ...current, ...result.metrics }));
       const complete = { id: Date.now(), query, answer: result.answer, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), source: result.sources?.[0]?.title || "Live RAG backend" };
       setLatestAnswer(complete); setMessages((current) => [complete, ...current]); setAnswersOpen(true);
@@ -109,5 +229,5 @@ export default function App() {
 
   const resetCache = async () => { await clearCache(); setMetrics(emptyMetrics); };
 
-  return <div className="slide-deck"><section className="slide-scene slide-one"><div className="app-shell"><Header /><div className="dashboard-layout"><HistoryRail messages={messages} onClear={() => setMessages([])} /><QueryStage onSubmit={submitQuery} isListening={isListening} setIsListening={setIsListening} isProcessing={isProcessing} error={error} /><aside className="telemetry-rail"><LiveExecutionPanel metrics={metrics} processing={isProcessing} phase={pipelinePhase} /><LiveAnalytics metrics={metrics} /><section className="panel cache-panel"><div><span className="eyebrow"><Archive size={13} /> CACHE</span><strong>Backend retrieval cache</strong></div><button className="clear-cache" onClick={resetCache}><Trash2 size={13} /> Clear</button></section></aside></div><footer className="bottom-status"><span><span className="live-dot" /> Live backend environment</span><span>{metrics.retrievalMethod || "Awaiting first request"}</span><span>{formatMs(metrics.totalLatencyMs || metrics.serverTotalMs)}</span></footer></div></section><section className="slide-scene slide-two"><LatencySequence metrics={metrics} /></section><AnswerDock answer={latestAnswer} metrics={metrics} isOpen={answersOpen} setIsOpen={setAnswersOpen} /></div>;
+  return <div className="slide-deck"><section className="slide-scene slide-one"><div className="app-shell"><Header /><div className="dashboard-layout"><HistoryRail messages={messages} onClear={() => setMessages([])} /><QueryStage onSubmit={submitQuery} isListening={isListening} setIsListening={setIsListening} isProcessing={isProcessing} error={error} strategy={strategy} setStrategy={setStrategy} /><aside className="telemetry-rail"><LiveExecutionPanel metrics={metrics} processing={isProcessing} phase={pipelinePhase} /><LiveAnalytics metrics={metrics} /><section className="panel cache-panel"><div><span className="eyebrow"><Archive size={13} /> CACHE</span><strong>Backend retrieval cache</strong></div><button className="clear-cache" onClick={resetCache}><Trash2 size={13} /> Clear</button></section></aside></div><footer className="bottom-status"><span><span className="live-dot" /> Live backend environment</span><span>{metrics.retrievalMethod || "Awaiting first request"}</span><span>{formatMs(metrics.totalLatencyMs || metrics.serverTotalMs)}</span></footer></div></section><section className="slide-scene slide-two"><LatencySequence metrics={metrics} /></section><AnswerDock answer={latestAnswer} metrics={metrics} isOpen={answersOpen} setIsOpen={setAnswersOpen} /></div>;
 }
