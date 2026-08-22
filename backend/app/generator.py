@@ -110,40 +110,10 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
             stream=True
         )
 
-        has_yielded = False
-        buffer = ""
-        in_think_block = False
-
         for chunk in response:
             if chunk.choices and chunk.choices[0].delta.content:
-                text = chunk.choices[0].delta.content
-                buffer += text
-                
-                if not in_think_block and not has_yielded:
-                    if buffer.startswith("<think>"):
-                        in_think_block = True
-                    elif not buffer.startswith("<") or len(buffer) > 10:
-                        yield buffer
-                        has_yielded = True
-                        buffer = ""
-                elif in_think_block:
-                    if "</think>" in buffer:
-                        in_think_block = False
-                        parts = buffer.split("</think>")
-                        buffer = parts[-1].lstrip("\n")
-                        if buffer:
-                            yield buffer
-                            has_yielded = True
-                            buffer = ""
-                else:
-                    if buffer:
-                        yield buffer
-                        has_yielded = True
-                        buffer = ""
-        
-        if buffer and not in_think_block:
-            yield buffer
-            has_yielded = True
+                yield chunk.choices[0].delta.content
+                has_yielded = True
                 
         if not has_yielded:
             if retrieved_context.strip():

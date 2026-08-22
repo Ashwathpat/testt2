@@ -322,7 +322,17 @@ export async function processQueryStream(
           });
         } else if (payload.type === 'token') {
           accumulatedAnswer += payload.content;
-          onToken(accumulatedAnswer);
+          
+          let displayAnswer = accumulatedAnswer;
+          if (displayAnswer.includes('<think>')) {
+            if (displayAnswer.includes('</think>')) {
+              displayAnswer = displayAnswer.split('</think>')[1].trimStart();
+            } else {
+              displayAnswer = '🤔 Reasoning...';
+            }
+          }
+          
+          onToken(displayAnswer);
         } else if (payload.type === 'evaluation') {
           evaluationData = payload.evaluation;
         } else if (payload.type === 'done') {
