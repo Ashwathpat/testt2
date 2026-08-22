@@ -8,8 +8,8 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-# llama-3.3-70b-versatile: best multilingual support on Groq, no <think> tags, highly accurate
-MODEL = "llama-3.3-70b-versatile"
+# qwen/qwen3.6-27b: highly multilingual, supports complex reasoning, frontend handles `<think>` stripping
+MODEL = "qwen/qwen3.6-27b"
 
 
 def generate_answer(
@@ -53,7 +53,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=200
+            max_tokens=1000
         )
 
         answer = response.choices[0].message.content
@@ -106,7 +106,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=200,
+            max_tokens=1000,
             stream=True
         )
 
