@@ -102,7 +102,7 @@ async def transcribe(file: UploadFile = File(...)):
     # Proxy to Sarvam AI Speech-to-Text (saaras:v4 — supports 22 Indian languages + English)
     async with httpx.AsyncClient() as client:
         files = {
-            "file": (file.filename or "recording.webm", file_bytes, file.content_type or "audio/webm")
+            "file": (file.filename or "recording.webm", file_bytes, "audio/webm")
         }
         data = {
             "model": "saaras:v4",
