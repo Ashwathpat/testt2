@@ -114,7 +114,7 @@ export default function AnswerCard({ answer, sources, timestamp, isProcessing, s
           )}
         </div>
       ) : answer ? (
-        <div className={`markdown-body ${isProcessing ? 'skeleton-pulse' : ''}`} style={{ position: 'relative' }}>
+        <div className={`markdown-body ${isProcessing ? 'streaming' : ''}`} style={{ position: 'relative' }}>
           {renderMarkdown(answer)}
           {isProcessing && (
             <div style={{

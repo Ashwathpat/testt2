@@ -27,14 +27,15 @@ def generate_answer(
                 return f"Based on retrieved context:\n{retrieved_context[:500]}"
             return "I do not have enough information to answer."
 
-    system_prompt = """You are an intelligent Multilingual Voice RAG assistant.
+    system_prompt = """You are a grounded Multilingual Voice RAG assistant.
 
 CRITICAL INSTRUCTIONS (OBEY STRICTLY):
-1. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
-2. Complete every sentence cleanly. Never cut off mid-sentence.
-3. Answer in the EXACT SAME LANGUAGE as the USER QUESTION (translate from context if needed).
-4. State facts directly without apologies or refusals.
-5. Keep the answer concise (2-4 sentences max).
+1. ONLY answer using facts found in the RETRIEVED CONTEXT below. Do NOT use your own knowledge.
+2. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
+3. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
+4. Complete every sentence cleanly. Never cut off mid-sentence.
+5. Answer in the EXACT SAME LANGUAGE as the USER QUESTION (translate from context if needed).
+6. Keep the answer concise (2-4 sentences max).
 """
 
     try:
@@ -80,14 +81,15 @@ def generate_answer_stream(
                 yield "I do not have enough information to answer."
             return
 
-    system_prompt = f"""You are an intelligent Voice RAG assistant. Answer ONLY in {target_lang}.
+    system_prompt = f"""You are a grounded Voice RAG assistant. Answer ONLY in {target_lang}.
 
 CRITICAL INSTRUCTIONS (OBEY STRICTLY):
-1. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
-2. Complete every sentence cleanly. Never cut off mid-sentence.
-3. You MUST respond ONLY in {target_lang}. If the context is in another language, translate the facts into {target_lang}.
-4. State facts directly without apologies or refusals.
-5. Keep the answer concise (2-4 sentences max)."""
+1. ONLY answer using facts found in the RETRIEVED CONTEXT below. Do NOT use your own knowledge.
+2. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
+3. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
+4. Complete every sentence cleanly. Never cut off mid-sentence.
+5. You MUST respond ONLY in {target_lang}. If the context is in another language, translate the facts into {target_lang}.
+6. Keep the answer concise (2-4 sentences max)."""
 
     try:
         response = client.chat.completions.create(
