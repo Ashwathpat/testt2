@@ -8,7 +8,8 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-MODEL = "qwen/qwen3.6-27b"
+# openai/gpt-oss-20b: clean output, no <think> tags, fast on Groq
+MODEL = "openai/gpt-oss-20b"
 
 
 def generate_answer(
@@ -33,7 +34,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 2. Complete every sentence cleanly. Never cut off mid-sentence.
 3. Answer in the EXACT SAME LANGUAGE as the USER QUESTION (translate from context if needed).
 4. State facts directly without apologies or refusals.
-5. Keep the answer extremely concise and brief (1-2 short sentences max).
+5. Keep the answer concise (2-4 sentences max).
 """
 
     try:
@@ -50,15 +51,11 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=25
+            max_tokens=200
         )
 
         answer = response.choices[0].message.content
-        if answer:
-            # Strip <think> blocks for reasoning models
-            import re
-            answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
-        return answer if answer else ""
+        return answer.strip() if answer else ""
     except Exception as e:
         print(f"[Groq Generator Error]: {e}")
         if retrieved_context.strip():
@@ -90,7 +87,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 2. Complete every sentence cleanly. Never cut off mid-sentence.
 3. You MUST respond ONLY in {target_lang}. If the context is in another language, translate the facts into {target_lang}.
 4. State facts directly without apologies or refusals.
-5. Keep the answer extremely concise and brief (1-2 short sentences max)."""
+5. Keep the answer concise (2-4 sentences max)."""
 
     try:
         response = client.chat.completions.create(
@@ -106,25 +103,26 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=25,
+            max_tokens=200,
             stream=True
         )
 
+        has_yielded = False
         for chunk in response:
             if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
                 has_yielded = True
-                
+
         if not has_yielded:
             if retrieved_context.strip():
-                yield f"Based on retrieved context:\n{retrieved_context[:500]}..."
+                yield f"Based on retrieved context:\n{retrieved_context[:500]}"
             else:
                 yield "I do not have enough information to answer."
 
     except Exception as e:
         print(f"[Groq Stream Error]: {e}")
         if retrieved_context.strip():
-            yield f"Retrieved context summary:\n{retrieved_context[:500]}..."
+            yield f"Retrieved context summary:\n{retrieved_context[:500]}"
         else:
             yield "I do not have enough information to answer."
 

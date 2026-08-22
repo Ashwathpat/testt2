@@ -240,16 +240,14 @@ def ask_stream(request: AskRequest):
     ]
     context = "\n\n".join(chunk["text"] for chunk in chunks)[:1200]
 
-    # Let the LLM naturally auto-detect the target language from the question itself,
-    # rather than relying on brittle script-based Regex which fails for transliteration.
-    target_lang = "the EXACT SAME language and script used in the USER QUESTION"
+    # Let the LLM auto-detect the response language from the question.
+    # "auto" tells the prompt to match the user's language automatically.
+    target_lang = "the same language as the user's question"
 
     q_vec = np.array(_embed_query_cached(request.question), dtype=np.float32)
     best_score = 0.0
     cached_answer, cached_chunks = None, None
     for c_vec, c_ans, c_chunks, c_lang in _LLM_ANSWER_CACHE:
-        if c_lang != target_lang:
-            continue
         sim = float(np.dot(q_vec, c_vec))
         if sim > best_score:
             best_score = sim
