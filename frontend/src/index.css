@@ -117,20 +117,14 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(200,91,50
 .ask-button:disabled { opacity: .75; cursor: wait; }
 .spin { animation: spin 1s linear infinite; }
 .architecture-strip { margin-top: 17px; min-height: 72px; border: 1px dashed #d7d1c8; border-radius: 14px; display: flex; align-items: center; gap: 12px; padding: 11px 14px; overflow: hidden; background: rgba(255,255,255,.35); }
-.left-workspace-controls { border: 1px solid rgba(219,214,205,.82); border-radius: var(--radius); background: rgba(255,255,255,.7); box-shadow: 0 12px 34px rgba(100,90,75,.06); padding: 16px; }
+.left-workspace-status { display: grid; gap: 12px; }
+.center-voice-input { margin-top: 16px; padding: 18px; }
 .left-workspace-heading h2 { margin: 7px 0 0; font-family: "Space Grotesk", sans-serif; font-size: 16px; letter-spacing: -.035em; }
-.left-workspace-controls .preset-label { margin-top: 15px; }
-.left-workspace-controls .preset-row { gap: 6px; }
-.left-workspace-controls .preset { padding: 6px 8px; font-size: 9px; }
-.left-workspace-controls .composer { margin-top: 12px; }
-.left-workspace-controls .composer textarea { min-height: 104px; padding: 13px; font-size: 12px; }
-.left-workspace-controls .composer-footer { gap: 8px; padding: 8px 10px 10px; }
-.left-workspace-controls .mic-orb { width: 36px; height: 36px; border-radius: 11px; }
-.left-workspace-controls .mic-button { gap: 8px; font-size: 10px; }
-.left-workspace-controls .ask-button { padding: 9px 10px; font-size: 10px; }
-.left-workspace-controls .transcript-band { margin: 12px 0 0; min-height: 0; padding: 11px; grid-template-columns: 1fr auto; gap: 8px; }
-.left-workspace-controls .transcript-band p { grid-column: 1 / -1; font-size: 10px; }
-.left-workspace-controls .transcript-band > span { font-size: 14px; }
+.center-voice-input .preset-label { margin-top: 15px; }
+.center-voice-input .composer { margin-top: 12px; }
+.left-workspace-status .transcript-band { margin: 0; min-height: 0; padding: 11px; grid-template-columns: 1fr auto; gap: 8px; }
+.left-workspace-status .transcript-band p { grid-column: 1 / -1; font-size: 10px; }
+.left-workspace-status .transcript-band > span { font-size: 14px; }
 .left-architecture-strip { margin-top: 12px; min-height: 60px; padding: 9px 11px; }
 .left-architecture-strip .architecture-title { min-width: 0; }
 .left-architecture-strip .architecture-visual { margin-left: auto; }
