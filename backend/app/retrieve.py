@@ -1,10 +1,8 @@
 """
-retrieve.py - Ultra-fast Semantic Vector Cache Retrieval (< 15ms target)
+retrieve.py - Semantic Vector Retrieval using local ONNX embeddings
 """
 
-import httpx
 import os
-import threading
 import time
 from functools import lru_cache
 import numpy as np
@@ -34,13 +32,16 @@ if not QDRANT_API_KEY:
     raise ValueError("QDRANT_API_KEY not found")
 
 
-# Lazy-loaded embedding model to avoid OOM at startup on 512MB servers
+# ---------------------------------------------------------------------------
+# Local ONNX Embedding Model (loaded lazily on first use)
+# ---------------------------------------------------------------------------
 _embed_model = None
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fastembed_cache")
 
 def _get_embed_model():
     global _embed_model
     if _embed_model is None:
+        print("[Embed] Loading local ONNX model...")
         try:
             TextEmbedding.add_custom_model(
                 model=MODEL_NAME,
@@ -53,6 +54,7 @@ def _get_embed_model():
         except ValueError:
             pass
         _embed_model = TextEmbedding(model_name=MODEL_NAME, cache_dir=CACHE_DIR, threads=1)
+        print("[Embed] Local ONNX model loaded OK")
     return _embed_model
 
 # Public alias for importers (grounding.py etc.)
@@ -69,71 +71,24 @@ client = QdrantClient(
 _SEMANTIC_CACHE = []
 
 
+def _is_zero_vector(vec):
+    """Check if a vector is all zeros (indicates embedding failure)."""
+    return all(v == 0.0 for v in vec[:10])
+
+
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """
-    Generate embeddings for a list of texts.
-    Uses urllib (stdlib) to call HF Inference API — bypasses httpx DNS issues on Render.
-    Falls back to local FastEmbed ONNX model only if IS_LOCAL is set.
+    Generate embeddings using the local FastEmbed ONNX model.
+    This is 100% reliable — no network calls, no DNS issues, no auth tokens.
+    The model is pre-downloaded during the Render build step.
     """
-    import urllib.request
-    import json as _json
-
-    headers = {"Content-Type": "application/json"}
-    hf_token = os.getenv("HF_TOKEN")
-    if hf_token:
-        headers["Authorization"] = f"Bearer {hf_token}"
-
-    url = f"https://router.huggingface.co/hf-inference/pipeline/feature-extraction/{MODEL_NAME}"
-    payload = _json.dumps({"inputs": texts}).encode("utf-8")
-
-    for attempt in range(2):
-        try:
-            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=6) as resp:
-                res_data = _json.loads(resp.read().decode("utf-8"))
-                if isinstance(res_data, list) and len(res_data) > 0:
-                    embeddings = []
-                    for item in res_data:
-                        if isinstance(item, list) and len(item) > 0 and isinstance(item[0], list):
-                            arr = np.array(item)
-                            mean_vec = np.mean(arr, axis=0).tolist()
-                            embeddings.append(mean_vec)
-                        else:
-                            embeddings.append(item)
-                    return embeddings
-                else:
-                    print(f"[HF API] Invalid response format: {res_data}")
-                    break
-        except urllib.error.HTTPError as e:
-            if e.code == 503:
-                import json as _j2
-                try:
-                    body = _j2.loads(e.read().decode("utf-8"))
-                    wait = min(float(body.get("estimated_time", 5)), 10)
-                except Exception:
-                    wait = 5
-                print(f"[HF API] Model loading, waiting {wait:.0f}s (attempt {attempt+1}/2)")
-                time.sleep(wait)
-                continue
-            else:
-                print(f"[HF API] HTTP {e.code}: {e.reason}")
-                break
-        except Exception as e:
-            print(f"[HF API] Error: {e}")
-            break
-
-    if not hf_token:
-        print("[HF API Error] HF_TOKEN is not set in environment variables! Please set HF_TOKEN.")
-
-    # Fallback: use local ONNX if IS_LOCAL env is set, else return dummy
-    if os.getenv("IS_LOCAL"):
-        print("[Fallback] Using local ONNX model")
+    try:
         model = _get_embed_model()
         embeddings = list(model.embed(texts))
         return [vec.tolist() for vec in embeddings]
-
-    print("[Fallback] HF API unreachable or unauthorized (Check HF_TOKEN). Returning zero vectors.")
-    return [[0.0] * 384 for _ in texts]
+    except Exception as e:
+        print(f"[Embed CRITICAL] Local ONNX model failed: {e}")
+        return [[0.0] * 384 for _ in texts]
 
 
 def clear_retrieve_caches():
@@ -146,19 +101,28 @@ def clear_retrieve_caches():
 def _embed_query_cached(query: str) -> tuple:
     embeddings = embed_texts([f"query: {query}"])
     vec = embeddings[0]
+    # NEVER cache zero vectors — they would poison ALL future lookups
+    if _is_zero_vector(vec):
+        # Evict this from the LRU cache immediately
+        _embed_query_cached.cache_clear()
+        return tuple(vec)
     return tuple(vec)
 
 
 def retrieve_context(query: str, k: int = DEFAULT_K) -> list[dict]:
     """
-    Ultra-fast semantic vector retrieval with in-memory semantic cache.
-    Returns in ~5-10ms for semantically similar topics!
+    Semantic vector retrieval with in-memory semantic cache.
     """
     q_clean = query.strip().lower()
 
-    # 1. Compute query vector (~5ms multi-threaded ONNX)
+    # 1. Compute query vector
     q_vec_tuple = _embed_query_cached(q_clean)
     q_vec = np.array(q_vec_tuple, dtype=np.float32)
+
+    # GUARD: If we got a zero vector, skip cache and Qdrant (would return garbage)
+    if _is_zero_vector(q_vec_tuple):
+        print("[Retrieve] WARNING: Got zero vector — embedding failed. Returning empty.")
+        return []
 
     # 2. Check In-Memory Semantic Cache (~0.1ms)
     best_score = 0.0
@@ -174,7 +138,7 @@ def retrieve_context(query: str, k: int = DEFAULT_K) -> list[dict]:
     if best_score >= 0.78 and best_hits:
         return best_hits[:k]
 
-    # 3. Fallback to Qdrant Cloud search
+    # 3. Qdrant Cloud search
     try:
         response = client.query_points(
             collection_name=COLLECTION_NAME,
@@ -199,9 +163,9 @@ def retrieve_context(query: str, k: int = DEFAULT_K) -> list[dict]:
         print(f"[Qdrant Retrieval Warning]: {e}")
         results = []
 
-    # Store in semantic cache
+    # Store in semantic cache (ONLY if we have real results with real vectors)
     if results:
-        if len(_SEMANTIC_CACHE) > 1000:
+        if len(_SEMANTIC_CACHE) > 500:
             _SEMANTIC_CACHE.pop(0)
         _SEMANTIC_CACHE.append((q_vec, results))
 

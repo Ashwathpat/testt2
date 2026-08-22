@@ -8,7 +8,7 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-MODEL = "llama3-8b-8192"
+MODEL = "groq/compound-mini"
 
 
 def generate_answer(

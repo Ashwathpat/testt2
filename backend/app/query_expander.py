@@ -50,7 +50,7 @@ def expand_query(query: str, n_variations: int = 4) -> list[str]:
     try:
         t0 = time.perf_counter()
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # Fast, cheap model for query expansion
+            model="groq/compound-mini",  # Fast model for query expansion
             messages=[
                 {
                     "role": "system",
