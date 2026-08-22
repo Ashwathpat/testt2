@@ -1,0 +1,25 @@
+/* Task-brief readiness and live STT status panels on the primary workbench slide. */
+.main-workspace { min-width: 0; }
+.transcript-band { margin: 16px 2px 0; min-height: 76px; padding: 14px 16px; display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; align-items: center; gap: 16px; }
+.transcript-band > div { display: grid; gap: 5px; }
+.transcript-band > div b { color: var(--ink-soft); font-size: 11px; }
+.transcript-band p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.45; }
+.transcript-band > span { color: var(--terracotta); font-family: "Space Grotesk", sans-serif; font-size: 18px; white-space: nowrap; }
+.task-readiness { margin: 16px 2px 0; padding: 16px; }
+.task-readiness-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.task-readiness-head h2 { margin: 7px 0 0; font-family: "Space Grotesk", sans-serif; font-size: 16px; letter-spacing: -.03em; }
+.task-status { padding: 6px 8px; border-radius: 999px; background: var(--mint); color: var(--teal); font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+.readiness-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.readiness-grid > div { min-height: 76px; padding: 11px; border: 1px solid #e9e3da; background: rgba(250,248,244,.86); border-radius: 10px; }
+.readiness-grid span, .readiness-grid b, .readiness-grid small { display: block; }
+.readiness-grid span { color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .11em; }
+.readiness-grid b { margin-top: 6px; color: var(--ink-soft); font-family: "Space Grotesk", sans-serif; font-size: 13px; font-weight: 500; }
+.readiness-grid small { margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.3; }
+.guardrail-state { display: flex; align-items: center; gap: 7px; margin-top: 12px; padding: 9px 10px; border-radius: 9px; background: #faf8f4; color: var(--muted); font-size: 9px; line-height: 1.35; }
+.guardrail-state.pass { background: #eaf6f1; color: var(--teal); }
+.guardrail-state.review { background: #fff3eb; color: var(--terracotta); }
+.latency-target { display: flex; align-items: center; gap: 7px; margin-top: 12px; padding: 8px 9px; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.latency-target b { color: var(--teal); font-size: 10px; }
+.latency-target em { margin-left: auto; color: var(--terracotta); font-size: 8px; font-style: normal; letter-spacing: 0; }
+@media (max-width: 1100px) { .main-workspace { grid-column: 1; } .transcript-band { grid-template-columns: 150px minmax(0, 1fr) auto; } }
+@media (max-width: 760px) { .transcript-band { grid-template-columns: 1fr; gap: 8px; } .readiness-grid { grid-template-columns: repeat(2, 1fr); } .readiness-grid > div { min-height: 72px; } }

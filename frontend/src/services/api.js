@@ -281,6 +281,8 @@ export async function processQueryStream(
   let serverTotalMs = 0;
   let retrievalMethod = 'dense';
   let evaluationData = null;
+  let grounded = false;
+  let reason = null;
   let buffer = '';
 
   onProgress('generating');
@@ -306,6 +308,8 @@ export async function processQueryStream(
           groundingLatencyMs = payload.grounding_ms || 0;
           ttftMs = payload.ttft_ms || 0;
           retrievalMethod = payload.retrieval_method || 'dense';
+          grounded = Boolean(payload.grounded);
+          reason = payload.reason || null;
           sources = (payload.sources || []).map((sourceId, i) => ({
             id: i + 1,
             title: sourceId,
@@ -337,6 +341,8 @@ export async function processQueryStream(
           evaluationData = payload.evaluation;
         } else if (payload.type === 'done') {
           serverTotalMs = payload.server_total_ms || 0;
+          grounded = payload.grounded ?? grounded;
+          reason = payload.reason || reason;
         }
       } catch (e) {
         console.warn('Failed to parse SSE payload:', e);
@@ -363,6 +369,8 @@ export async function processQueryStream(
     answer: finalAnswer,
     sources,
     status: 'success',
+    grounded,
+    reason,
     metrics: {
       sttLatencyMs,
       retrievalLatencyMs,
