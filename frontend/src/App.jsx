@@ -146,7 +146,9 @@ export default function App() {
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { setError("Microphone recording is not supported by this browser."); return; }
     try {
       setError("");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { echoCancellation: true, noiseSuppression: true } 
+      });
       audioChunksRef.current = [];
       const rawMimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((type) => MediaRecorder.isTypeSupported(type));
       const cleanMimeType = rawMimeType ? rawMimeType.split(";")[0] : "audio/webm";
@@ -168,7 +170,11 @@ export default function App() {
         } catch (sttError) { setError(sttError.message || "Speech-to-text failed. Please try again."); setIsProcessing(false); setPipelinePhase(""); setSttStatus(""); }
       };
       recorderRef.current = nextRecorder; nextRecorder.start(); setIsListening(true); setSttStatus("Recording…");
-    } catch (microphoneError) { setError("Microphone permission was denied or no device was found."); setIsListening(false); setSttStatus(""); }
+    } catch (microphoneError) { 
+      console.error("Microphone setup failed:", microphoneError);
+      setError(`Microphone error: ${microphoneError.name} - ${microphoneError.message}`); 
+      setIsListening(false); setSttStatus(""); 
+    }
   };
 
   const resetCache = async () => { await clearCache(); setMetrics(emptyMetrics); setLatencyHistory([]); setGuardrail(null); };
