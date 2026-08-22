@@ -8,7 +8,7 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-MODEL = "openai/gpt-oss-20b"
+MODEL = "qwen/qwen3.6-27b"
 
 
 def generate_answer(
@@ -106,13 +106,22 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
             stream=True
         )
 
+        has_yielded = False
         for chunk in response:
             if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
+                has_yielded = True
+                
+        if not has_yielded:
+            if retrieved_context.strip():
+                yield f"Based on retrieved context:\n{retrieved_context[:500]}..."
+            else:
+                yield "I do not have enough information to answer."
+
     except Exception as e:
         print(f"[Groq Stream Error]: {e}")
         if retrieved_context.strip():
-            yield f"Retrieved context summary:\n{retrieved_context[:500]}"
+            yield f"Retrieved context summary:\n{retrieved_context[:500]}..."
         else:
             yield "I do not have enough information to answer."
 
