@@ -1,0 +1,16 @@
+**Common Symptoms of Diabetes (both Type 1 and Type 2)**  
+(They may appear gradually or suddenly, and some people may not feel any symptoms at first.)
+
+| Symptom | What it means | Why it happens |
+|---------|---------------|----------------|
+| **Frequent urination (polyuria)** | Urinating more often, especially at night | Blood sugar spills into the kidneys, causing excess fluid to be filtered out. |
+| **Increased thirst (polydipsia)** | Feeling thirsty all the time | Loss of fluid through urination leads to dehydration, stimulating thirst. |
+| **Unexplained weight loss** | Losing weight despite normal or increased appetite | The body can’t use glucose for energy, so it breaks down muscle and fat. |
+| **Fatigue / weakness** | Feeling tired, sluggish, or lacking energy | Cells can’t get glucose, so they produce less ATP (energy). |
+| **Blurred vision** | Vision changes, sometimes double vision | High blood sugar alters fluid balance in the eye’s lenses, changing their shape. |
+| **Slow‑healing cuts or sores** | Cuts or infections heal slowly | Diabetes impairs blood circulation and immune function. |
+| **Frequent infections** | Recurrent skin, mouth, urinary tract infections | High sugar levels provide a food source for bacteria and weaken immunity. |
+| **Numbness or tingling in
+
+REASONING_TOKENS: 5
+TOTAL_TOKENS: 300

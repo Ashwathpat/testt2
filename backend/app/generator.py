@@ -8,8 +8,8 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-# groq/compound-mini: fast, supports multilingual queries and translates context properly
-MODEL = "groq/compound-mini"
+# openai/gpt-oss-20b: fast reasoning model on Groq, requires reasoning_effort+reasoning_format params
+MODEL = "openai/gpt-oss-20b"
 
 
 def generate_answer(
@@ -53,7 +53,9 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=200
+            max_tokens=300,
+            reasoning_effort="low",
+            reasoning_format="hidden"
         )
 
         answer = response.choices[0].message.content
@@ -106,7 +108,9 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 }
             ],
             temperature=0.1,
-            max_tokens=200,
+            max_tokens=300,
+            reasoning_effort="low",
+            reasoning_format="hidden",
             stream=True
         )
 
