@@ -105,7 +105,8 @@ async def transcribe(file: UploadFile = File(...)):
             "file": (file.filename or "recording.webm", file_bytes, file.content_type or "audio/webm")
         }
         data = {
-            "model": "whisper-large-v3-turbo"
+            "model": "whisper-large-v3-turbo",
+            "prompt": "Please transcribe the audio exactly as spoken in the native language (e.g., Kannada, Hindi, Tamil, Telugu). Do not translate it to English. Use native scripts."
         }
         headers = {
             "Authorization": f"Bearer {groq_api_key}"

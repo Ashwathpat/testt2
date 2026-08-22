@@ -8,8 +8,8 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-# openai/gpt-oss-20b: clean output, no <think> tags, fast on Groq
-MODEL = "openai/gpt-oss-20b"
+# llama-3.3-70b-versatile: best multilingual support on Groq, no <think> tags, highly accurate
+MODEL = "llama-3.3-70b-versatile"
 
 
 def generate_answer(
