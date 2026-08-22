@@ -42,6 +42,12 @@ def _get_embed_model():
     global _embed_model
     if _embed_model is None:
         print("[Embed] Loading local ONNX model...")
+        
+        # Aggressive memory optimization for 512MB Render free tier
+        os.environ["OMP_NUM_THREADS"] = "1"
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        os.environ["ONNXRUNTIME_MAX_THREADS"] = "1"
+
         try:
             TextEmbedding.add_custom_model(
                 model=MODEL_NAME,
