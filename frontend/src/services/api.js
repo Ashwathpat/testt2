@@ -251,6 +251,7 @@ export async function processQueryStream(
   onMetadata = () => {},
   strategy = 'fixed_128'
 ) {
+  const streamStartedAt = performance.now();
   onProgress('retrieving');
 
   let response;
@@ -275,17 +276,15 @@ export async function processQueryStream(
 
   let accumulatedAnswer = '';
   let sources = [];
-  let retrievalLatencyMs = 0;
-  let groundingLatencyMs = 0;
-  let ttftMs = 0;
-  let serverTotalMs = 0;
+  let retrievalLatencyMs = null;
+  let groundingLatencyMs = null;
+  let ttftMs = null;
+  let serverTotalMs = null;
   let retrievalMethod = 'dense';
   let evaluationData = null;
   let grounded = false;
   let reason = null;
   let buffer = '';
-
-  onProgress('generating');
 
   while (true) {
     const { done, value } = await reader.read();
@@ -304,9 +303,9 @@ export async function processQueryStream(
         const payload = JSON.parse(jsonStr);
 
         if (payload.type === 'metadata') {
-          retrievalLatencyMs = payload.retrieval_ms || 0;
-          groundingLatencyMs = payload.grounding_ms || 0;
-          ttftMs = payload.ttft_ms || 0;
+          retrievalLatencyMs = payload.retrieval_ms ?? payload.retrieval_latency_ms ?? null;
+          groundingLatencyMs = payload.grounding_ms ?? payload.grounding_latency_ms ?? null;
+          ttftMs = payload.ttft_ms ?? payload.time_to_first_token_ms ?? null;
           retrievalMethod = payload.retrieval_method || 'dense';
           grounded = Boolean(payload.grounded);
           reason = payload.reason || null;
@@ -324,7 +323,9 @@ export async function processQueryStream(
             ttftMs,
             retrievalMethod,
           });
+          onProgress('grounding');
         } else if (payload.type === 'token') {
+          onProgress('generating');
           accumulatedAnswer += payload.content;
           
           let displayAnswer = accumulatedAnswer;
@@ -340,7 +341,7 @@ export async function processQueryStream(
         } else if (payload.type === 'evaluation') {
           evaluationData = payload.evaluation;
         } else if (payload.type === 'done') {
-          serverTotalMs = payload.server_total_ms || 0;
+          serverTotalMs = payload.server_total_ms ?? payload.total_ms ?? null;
           grounded = payload.grounded ?? grounded;
           reason = payload.reason || reason;
         }
@@ -350,8 +351,11 @@ export async function processQueryStream(
     }
   }
 
-  const generationLatencyMs = Math.max(0, serverTotalMs - retrievalLatencyMs - groundingLatencyMs);
-  const totalLatencyMs = ttftMs || serverTotalMs;
+  const streamRoundTripLatencyMs = Math.round(performance.now() - streamStartedAt);
+  const backendLatencyMs = Number.isFinite(Number(serverTotalMs)) ? Number(serverTotalMs) : streamRoundTripLatencyMs;
+  const generationLatencyMs = Math.max(0, backendLatencyMs - Number(retrievalLatencyMs || 0) - Number(groundingLatencyMs || 0));
+  const endToEndLatencyMs = Math.round(streamRoundTripLatencyMs + Number(sttLatencyMs || 0));
+  const evaluationLatencyMs = evaluationData?.eval_latency_ms ?? null;
 
   // Strip any <think>...</think> reasoning blocks from final answer
   let finalAnswer = accumulatedAnswer;
@@ -377,8 +381,11 @@ export async function processQueryStream(
       groundingLatencyMs,
       generationLatencyMs,
       serverTotalMs,
-      totalLatencyMs,
-      ttftMs: ttftMs || (sttLatencyMs + retrievalLatencyMs + 150),
+      streamRoundTripLatencyMs,
+      endToEndLatencyMs,
+      totalLatencyMs: endToEndLatencyMs,
+      ttftMs,
+      evaluationLatencyMs,
       retrievedDocsCount: sources.length,
       retrievalMethod,
       evaluation: evaluationData,
