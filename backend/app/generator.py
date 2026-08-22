@@ -8,7 +8,7 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY", "")
 client = Groq(api_key=api_key) if api_key else None
 
-MODEL = "openai/gpt-oss-20b"
+MODEL = "qwen/qwen3.6-27b"
 
 
 def generate_answer(
@@ -54,7 +54,11 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
         )
 
         answer = response.choices[0].message.content
-        return answer.strip() if answer else ""
+        if answer:
+            # Strip <think> blocks for reasoning models
+            import re
+            answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
+        return answer if answer else ""
     except Exception as e:
         print(f"[Groq Generator Error]: {e}")
         if retrieved_context.strip():
@@ -107,10 +111,39 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
         )
 
         has_yielded = False
+        buffer = ""
+        in_think_block = False
+
         for chunk in response:
             if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
-                has_yielded = True
+                text = chunk.choices[0].delta.content
+                buffer += text
+                
+                if not in_think_block and not has_yielded:
+                    if buffer.startswith("<think>"):
+                        in_think_block = True
+                    elif not buffer.startswith("<") or len(buffer) > 10:
+                        yield buffer
+                        has_yielded = True
+                        buffer = ""
+                elif in_think_block:
+                    if "</think>" in buffer:
+                        in_think_block = False
+                        parts = buffer.split("</think>")
+                        buffer = parts[-1].lstrip("\n")
+                        if buffer:
+                            yield buffer
+                            has_yielded = True
+                            buffer = ""
+                else:
+                    if buffer:
+                        yield buffer
+                        has_yielded = True
+                        buffer = ""
+        
+        if buffer and not in_think_block:
+            yield buffer
+            has_yielded = True
                 
         if not has_yielded:
             if retrieved_context.strip():

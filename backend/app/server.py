@@ -240,24 +240,9 @@ def ask_stream(request: AskRequest):
     ]
     context = "\n\n".join(chunk["text"] for chunk in chunks)[:1200]
 
-    # Detect language from the question — support all major Indic scripts
-    import re as _re
-    _INDIC_PATTERNS = {
-        "Hindi": r'[\u0900-\u097F]',        # Devanagari
-        "Tamil": r'[\u0B80-\u0BFF]',        # Tamil
-        "Telugu": r'[\u0C00-\u0C7F]',       # Telugu
-        "Kannada": r'[\u0C80-\u0CFF]',      # Kannada
-        "Malayalam": r'[\u0D00-\u0D7F]',     # Malayalam
-        "Bengali": r'[\u0980-\u09FF]',       # Bengali
-        "Gujarati": r'[\u0A80-\u0AFF]',     # Gujarati
-        "Marathi": r'[\u0900-\u097F]',      # Devanagari (same as Hindi)
-        "Punjabi": r'[\u0A00-\u0A7F]',      # Gurmukhi
-    }
-    target_lang = "English"
-    for lang, pattern in _INDIC_PATTERNS.items():
-        if _re.search(pattern, request.question):
-            target_lang = lang
-            break
+    # Let the LLM naturally auto-detect the target language from the question itself,
+    # rather than relying on brittle script-based Regex which fails for transliteration.
+    target_lang = "the EXACT SAME language and script used in the USER QUESTION"
 
     q_vec = np.array(_embed_query_cached(request.question), dtype=np.float32)
     best_score = 0.0
