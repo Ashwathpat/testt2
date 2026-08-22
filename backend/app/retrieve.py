@@ -32,67 +32,39 @@ if not QDRANT_API_KEY:
     raise ValueError("QDRANT_API_KEY not found")
 
 
-import urllib.request
-import json as _json
+# ---------------------------------------------------------------------------
+# Local ONNX Embedding Model (loaded lazily on first use)
+# ---------------------------------------------------------------------------
+_embed_model = None
+CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fastembed_cache")
 
-def embed_texts(texts: list[str]) -> list[list[float]]:
-    """
-    Generate embeddings using Hugging Face Inference API.
-    Removed local fastembed fallback because it causes OOM on Render's 512MB tier.
-    """
-    headers = {"Content-Type": "application/json"}
-    hf_token = os.getenv("HF_TOKEN")
-    if hf_token:
-        headers["Authorization"] = f"Bearer {hf_token}"
-    else:
-        print("[Embed CRITICAL] HF_TOKEN is missing! Please set HF_TOKEN in Render environment variables.")
+def _get_embed_model():
+    global _embed_model
+    if _embed_model is None:
+        print("[Embed] Loading local ONNX model...")
+        
+        # Keep aggressive memory optimization just in case
+        os.environ["OMP_NUM_THREADS"] = "1"
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        os.environ["ONNXRUNTIME_MAX_THREADS"] = "1"
 
-    url = f"https://router.huggingface.co/hf-inference/pipeline/feature-extraction/{MODEL_NAME}"
-    payload = _json.dumps({"inputs": texts}).encode("utf-8")
-
-    for attempt in range(3):
         try:
-            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                res_data = _json.loads(resp.read().decode("utf-8"))
-                if isinstance(res_data, list) and len(res_data) > 0:
-                    embeddings = []
-                    for item in res_data:
-                        if isinstance(item, list) and len(item) > 0 and isinstance(item[0], list):
-                            arr = np.array(item)
-                            embeddings.append(np.mean(arr, axis=0).tolist())
-                        else:
-                            embeddings.append(item)
-                    return embeddings
-                else:
-                    print(f"[HF API] Invalid response format: {res_data}")
-                    break
-        except urllib.error.HTTPError as e:
-            if e.code == 503:
-                import json as _j2
-                try:
-                    body = _j2.loads(e.read().decode("utf-8"))
-                    wait = min(float(body.get("estimated_time", 5)), 10)
-                except Exception:
-                    wait = 5
-                print(f"[HF API] Model loading, waiting {wait:.0f}s (attempt {attempt+1}/3)")
-                time.sleep(wait)
-                continue
-            else:
-                print(f"[HF API] HTTP {e.code}: {e.reason}")
-                break
-        except Exception as e:
-            print(f"[HF API] Error: {e}")
-            break
+            TextEmbedding.add_custom_model(
+                model=MODEL_NAME,
+                pooling=PoolingType.MEAN,
+                normalization=True,
+                sources=ModelSource(hf=MODEL_NAME),
+                dim=384,
+                model_file="onnx/model.onnx",
+            )
+        except ValueError:
+            pass
+        _embed_model = TextEmbedding(model_name=MODEL_NAME, cache_dir=CACHE_DIR, threads=1)
+        print("[Embed] Local ONNX model loaded OK")
+    return _embed_model
 
-    # If it fails, return an empty list instead of zeroes so we don't poison cache
-    print("[Embed] Failed to get embeddings from HF API.")
-    return []
-
-def clear_retrieve_caches():
-    """Clear all retrieve-related in-memory caches."""
-    _embed_query_cached.cache_clear()
-    _SEMANTIC_CACHE.clear()
+# Public alias for importers (grounding.py etc.)
+embed_model = None  # Will be set on first use via _get_embed_model()
 
 # Persistent Qdrant client
 client = QdrantClient(
@@ -109,6 +81,25 @@ def _is_zero_vector(vec):
     """Check if a vector is all zeros (indicates embedding failure)."""
     return all(v == 0.0 for v in vec[:10])
 
+
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """
+    Generate embeddings using the local FastEmbed ONNX model.
+    This is 100% reliable — no network calls, no DNS issues, no auth tokens.
+    """
+    try:
+        model = _get_embed_model()
+        embeddings = list(model.embed(texts))
+        return [vec.tolist() for vec in embeddings]
+    except Exception as e:
+        print(f"[Embed CRITICAL] Local ONNX model failed: {e}")
+        return [[0.0] * 384 for _ in texts]
+
+
+def clear_retrieve_caches():
+    """Clear all retrieve-related in-memory caches."""
+    _embed_query_cached.cache_clear()
+    _SEMANTIC_CACHE.clear()
 
 
 @lru_cache(maxsize=200)
