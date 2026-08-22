@@ -15,6 +15,7 @@ MODEL = "openai/gpt-oss-20b"
 def generate_answer(
     question: str,
     retrieved_context: str,
+    target_lang: str = "English",
     retry: bool = False
 ) -> str:
     global client
@@ -27,16 +28,16 @@ def generate_answer(
                 return f"Based on retrieved context:\n{retrieved_context[:500]}"
             return "I do not have enough information to answer."
 
-    system_prompt = """You are a grounded Multilingual Voice RAG assistant.
+    system_prompt = f"""You are a grounded Multilingual Voice RAG assistant. Answer ONLY in {target_lang}.
 
 CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 1. ONLY answer using facts found in the RETRIEVED CONTEXT below. Do NOT use your own knowledge.
 2. If the user's question asks for something unsafe, unethical, illegal, or inappropriate (like weapons, violence, harm), respond EXACTLY with: "I cannot fulfill this request."
 3. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
-3. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
-4. Complete every sentence cleanly. Never cut off mid-sentence.
-5. Answer in the EXACT SAME LANGUAGE as the USER QUESTION (translate from context if needed).
-6. Keep the answer concise (2-4 sentences max).
+4. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
+5. Complete every sentence cleanly. Never cut off mid-sentence.
+6. You MUST respond ONLY in {target_lang}. If the retrieved context is in a different language, translate the facts into {target_lang}.
+7. Keep the answer concise (2-4 sentences max).
 """
 
     try:
@@ -69,7 +70,8 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 
 def generate_answer_stream(
     question: str,
-    retrieved_context: str
+    retrieved_context: str,
+    target_lang: str = "English"
 ):
     global client
     if not client:
@@ -83,7 +85,7 @@ def generate_answer_stream(
                 yield "I do not have enough information to answer."
             return
 
-    system_prompt = """You are a grounded Multilingual Voice RAG assistant.
+    system_prompt = f"""You are a grounded Multilingual Voice RAG assistant. Answer ONLY in {target_lang}.
 
 CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 1. ONLY answer using facts found in the RETRIEVED CONTEXT below. Do NOT use your own knowledge.
@@ -91,7 +93,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 3. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
 4. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
 5. Complete every sentence cleanly. Never cut off mid-sentence.
-6. Answer in the EXACT SAME LANGUAGE as the USER QUESTION. If the retrieved context is in a different language, translate the facts to match the user's language.
+6. You MUST respond ONLY in {target_lang}. If the retrieved context is in a different language, translate the facts into {target_lang}.
 7. Keep the answer concise (2-4 sentences max)."""
 
     try:

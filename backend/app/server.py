@@ -140,31 +140,51 @@ async def transcribe(file: UploadFile = File(...)):
         "languageCode": res_data.get("language_code", "unknown")
     }
 
+def detect_language(text: str) -> str:
+    # Check Unicode ranges for Indic languages
+    if any(ord(c) in range(0x0900, 0x0980) for c in text):
+        return "Hindi"
+    elif any(ord(c) in range(0x0C80, 0x0D00) for c in text):
+        return "Kannada"
+    elif any(ord(c) in range(0x0B80, 0x0C00) for c in text):
+        return "Tamil"
+    elif any(ord(c) in range(0x0C00, 0x0C80) for c in text):
+        return "Telugu"
+    elif any(ord(c) in range(0x0980, 0x0A00) for c in text):
+        return "Bengali"
+    return "English"
+
 
 @app.post("/ask")
 def ask(request: AskRequest):
     t_start = time.perf_counter()
 
     t_ret_start = time.perf_counter()
-    retrieved, retrieval_metadata = hybrid_retrieve_context(request.question, k=3)
+    retrieved, retrieval_metadata = hybrid_retrieve_context(
+        request.question, k=3,
+        collection_name=request.strategy,
+    )
     t_ret_end = time.perf_counter()
     retrieval_ms = round((t_ret_end - t_ret_start) * 1000, 2)
 
     chunks = adapt_retrieval_results(retrieved)
 
-    t_gen_start = time.perf_counter()
-    
+    # Detect target language of the query
+    target_lang = detect_language(request.question)
+
     q_vec = np.array(_embed_query_cached(request.question), dtype=np.float32)
     best_score = 0.0
     cached_answer, cached_chunks = None, None
-    for c_vec, c_ans, c_chunks, _ in _LLM_ANSWER_CACHE:
-        sim = float(np.dot(q_vec, c_vec))
-        if sim > best_score:
-            best_score = sim
-            cached_answer, cached_chunks = c_ans, c_chunks
-            
+    for c_vec, c_ans, c_chunks, c_lang in _LLM_ANSWER_CACHE:
+        # Cache hit must also match target language
+        if c_lang == target_lang:
+            sim = float(np.dot(q_vec, c_vec))
+            if sim > best_score:
+                best_score = sim
+                cached_answer, cached_chunks = c_ans, c_chunks
+
+    t_gen_start = time.perf_counter()
     if best_score >= 0.95 and cached_answer:
-        # Cache hit!
         result_status = "success"
         result_answer = cached_answer
         result_grounded = True
@@ -179,7 +199,8 @@ def ask(request: AskRequest):
             request.question,
             chunks,
             retrieval_metadata=retrieval_metadata,
-            total_latency_start=t_start
+            total_latency_start=t_start,
+            target_lang=target_lang
         )
         result_status = result.status
         result_answer = result.answer
@@ -193,7 +214,7 @@ def ask(request: AskRequest):
         
         # Save to cache if successful
         if result_status == "success":
-            _LLM_ANSWER_CACHE.append((q_vec, result_answer, chunks, "English"))
+            _LLM_ANSWER_CACHE.append((q_vec, result_answer, chunks, target_lang))
             
     t_gen_end = time.perf_counter()
     generation_pipeline_ms = round((t_gen_end - t_gen_start) * 1000, 2)
@@ -242,18 +263,19 @@ def ask_stream(request: AskRequest):
     ]
     context = "\n\n".join(chunk["text"] for chunk in chunks)[:1200]
 
-    # Let the LLM auto-detect the response language from the question.
-    # "auto" tells the prompt to match the user's language automatically.
-    target_lang = "the same language as the user's question"
+    # Detect language from the question so the LLM answers in the right language
+    target_lang = detect_language(request.question)
 
     q_vec = np.array(_embed_query_cached(request.question), dtype=np.float32)
     best_score = 0.0
     cached_answer, cached_chunks = None, None
     for c_vec, c_ans, c_chunks, c_lang in _LLM_ANSWER_CACHE:
-        sim = float(np.dot(q_vec, c_vec))
-        if sim > best_score:
-            best_score = sim
-            cached_answer, cached_chunks = c_ans, c_chunks
+        # Cache hit must match target language
+        if c_lang == target_lang:
+            sim = float(np.dot(q_vec, c_vec))
+            if sim > best_score:
+                best_score = sim
+                cached_answer, cached_chunks = c_ans, c_chunks
 
     def event_generator():
         # Check cache hit
@@ -304,7 +326,7 @@ def ask_stream(request: AskRequest):
             f"RETRIEVED CONTEXT (may be in a different language — translate facts, but respond ONLY in {target_lang}):\n{context}"
         )
         accumulated_answer = ""
-        for token in generate_answer_stream(request.question, context):
+        for token in generate_answer_stream(request.question, context, target_lang=target_lang):
             accumulated_answer += token
             payload = {"type": "token", "content": token}
             yield f"data: {json.dumps(payload)}\n\n"

@@ -29,7 +29,8 @@ def run_pipeline(
     retrieved_chunks: list[dict],
     generator=generate_answer,
     retrieval_metadata: dict = None,
-    total_latency_start: float = None
+    total_latency_start: float = None,
+    target_lang: str = "English"
 ) -> RAGResponse:
 
     start = time.perf_counter()
@@ -107,7 +108,8 @@ def run_pipeline(
 
     answer = generator(
         question,
-        context
+        context,
+        target_lang=target_lang
     )
 
     # --------------------------------
@@ -119,6 +121,7 @@ def run_pipeline(
         answer = generator(
             question,
             context,
+            target_lang=target_lang,
             retry=True
         )
 
