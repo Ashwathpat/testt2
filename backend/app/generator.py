@@ -67,8 +67,7 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 
 def generate_answer_stream(
     question: str,
-    retrieved_context: str,
-    target_lang: str = "English"
+    retrieved_context: str
 ):
     global client
     if not client:
@@ -82,16 +81,16 @@ def generate_answer_stream(
                 yield "I do not have enough information to answer."
             return
 
-    system_prompt = f"""You are a grounded Voice RAG assistant. Answer ONLY in {target_lang}.
+    system_prompt = """You are a grounded Multilingual Voice RAG assistant.
 
 CRITICAL INSTRUCTIONS (OBEY STRICTLY):
 1. ONLY answer using facts found in the RETRIEVED CONTEXT below. Do NOT use your own knowledge.
 2. If the user's question asks for something unsafe, unethical, illegal, or inappropriate (like weapons, violence, harm), respond EXACTLY with: "I cannot fulfill this request."
 3. If the RETRIEVED CONTEXT does not contain information to answer the question, respond EXACTLY with: "I do not have enough information to answer this question based on the available context."
-3. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
-4. Complete every sentence cleanly. Never cut off mid-sentence.
-5. You MUST respond ONLY in {target_lang}. If the context is in another language, translate the facts into {target_lang}.
-6. Keep the answer concise (2-4 sentences max)."""
+4. Output the direct answer immediately without preamble, scratchpads, or conversational fluff.
+5. Complete every sentence cleanly. Never cut off mid-sentence.
+6. Answer in the EXACT SAME LANGUAGE as the USER QUESTION. If the retrieved context is in a different language, translate the facts to match the user's language.
+7. Keep the answer concise (2-4 sentences max)."""
 
     try:
         response = client.chat.completions.create(
@@ -101,8 +100,8 @@ CRITICAL INSTRUCTIONS (OBEY STRICTLY):
                 {
                     "role": "user",
                     "content": (
-                        f"USER QUESTION ({target_lang}):\n{question}\n\n"
-                        f"RETRIEVED CONTEXT (may be in a different language — translate facts, respond ONLY in {target_lang}):\n{retrieved_context}"
+                        f"USER QUESTION:\n{question}\n\n"
+                        f"RETRIEVED CONTEXT:\n{retrieved_context}"
                     )
                 }
             ],

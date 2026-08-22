@@ -302,7 +302,7 @@ def ask_stream(request: AskRequest):
             f"RETRIEVED CONTEXT (may be in a different language — translate facts, but respond ONLY in {target_lang}):\n{context}"
         )
         accumulated_answer = ""
-        for token in generate_answer_stream(request.question, context, target_lang=target_lang):
+        for token in generate_answer_stream(request.question, context):
             accumulated_answer += token
             payload = {"type": "token", "content": token}
             yield f"data: {json.dumps(payload)}\n\n"
