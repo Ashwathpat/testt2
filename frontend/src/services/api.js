@@ -12,7 +12,7 @@ export const CONFIG = {
   USE_REAL_STT: true,
   // FastAPI backend (Person B/C pipeline).
   // Defaults to the Render deployment if VITE_RAG_BACKEND_URL is not set (e.g. on Vercel)
-  RAG_BACKEND_URL: import.meta.env.VITE_RAG_BACKEND_URL || 'https://voice-rag-k8wr.onrender.com',
+  RAG_BACKEND_URL: import.meta.env.VITE_RAG_BACKEND_URL || 'https://voicerag-539345290162.us-east1.run.app',
   get STT_ENDPOINT() {
     return `${this.RAG_BACKEND_URL}/api/transcribe`;
   }
